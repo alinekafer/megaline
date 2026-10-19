@@ -1,0 +1,229 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mesma Largada?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..900&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: pista de corrida com uma raia por perfil; a carta do evento fica acima da pista e os efeitos aparecem raia a raia. */
+:root{
+  --ground:#f3f4f6; --card:#ffffff; --ink:#1b1f3b; --muted:#5b6078; --line:#dfe2ea; --lane:#eceef3;
+  --accent:#1b1f3b; --accent-ink:#ffffff; --up:#1f7a45; --down:#b5482a; --soft:#eef3fb;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --display:"Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#11131c; --card:#1a1d29; --ink:#e8eaf3; --muted:#a3a8bf; --line:#2c3042; --lane:#202435;
+  --accent:#e8eaf3; --accent-ink:#11131c; --up:#5cc488; --down:#f08a6c; --soft:#1d2536; color-scheme:dark;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+}}
+:root[data-theme="dark"]{
+  --ground:#11131c; --card:#1a1d29; --ink:#e8eaf3; --muted:#a3a8bf; --line:#2c3042; --lane:#202435;
+  --accent:#e8eaf3; --accent-ink:#11131c; --up:#5cc488; --down:#f08a6c; --soft:#1d2536; color-scheme:dark;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:16px}
+h1,h2,h3{font-family:var(--display);font-stretch:80%;margin:0;line-height:1.05;text-wrap:balance}
+h1{font-weight:900;font-size:clamp(2.2rem,6vw,3.6rem)}
+h2{font-weight:800;font-size:clamp(1.5rem,3.6vw,2.2rem)}
+h3{font-weight:700;font-size:1.1rem;font-stretch:90%}
+p{margin:0}
+.label{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--s1);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:10px 18px;font-weight:700}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.small{padding:6px 12px;font-size:.88rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.profiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px}
+.prof{border-top:6px solid var(--c);}
+.prof h3{display:flex;gap:8px;align-items:center}
+.dot{width:26px;height:26px;border-radius:50%;background:var(--c);color:#fff;display:inline-grid;place-items:center;font-family:var(--display);font-weight:800;font-size:.85rem;flex:0 0 auto}
+.caps{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:.85rem}
+.pips{letter-spacing:2px;font-family:var(--mono);color:var(--ink)}
+.event{display:grid;gap:8px;border-left:6px solid var(--accent)}
+.event .num{font-family:var(--mono);color:var(--muted)}
+.track{display:grid;gap:6px}
+.lane{display:grid;grid-template-columns:minmax(90px,150px) minmax(0,1fr) 92px;gap:10px;align-items:center}
+.lane .who{font-weight:700;display:flex;gap:6px;align-items:center;min-width:0}
+.lane .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.road{position:relative;height:34px;background:var(--lane);border-radius:6px;background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(100%/30 - 1px),var(--line) calc(100%/30 - 1px),var(--line) calc(100%/30))}
+.token{position:absolute;top:50%;transform:translate(-50%,-50%);transition:left .9s cubic-bezier(.3,.7,.3,1)}
+.delta{font-family:var(--display);font-weight:800;font-size:1.25rem;text-align:right;font-variant-numeric:tabular-nums}
+.delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.zero{color:var(--muted)}
+.why{grid-column:2 / 4;font-size:.88rem;color:var(--muted);margin-top:-4px}
+.choice{display:flex;gap:6px}
+.choice button{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:4px 10px;font-size:.85rem}
+.choice button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.patio .lane{grid-template-columns:minmax(120px,220px) minmax(0,1fr) 150px}
+.patio .delta{font-size:2.2rem}
+.patio .who{font-size:1.4rem}
+.patio .why{font-size:1.05rem}
+.ask{background:var(--soft);border-radius:8px;padding:10px 12px}
+ol.debate{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.chart{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.88rem}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+@media (max-width:640px){.lane{grid-template-columns:80px minmax(0,1fr) 56px}.why{grid-column:1 / 4}}
+@media (prefers-reduced-motion:reduce){.token{transition:none}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+const PERFIS = [
+  {id:"laura", nome:"Laura", eco:3, cult:3, soc:3, tempo:3, dist:"perto", desc:"Filha de uma médica e de um advogado. Mora perto do campus, tem quarto só dela e faz inglês desde os 8 anos."},
+  {id:"diego", nome:"Diego", eco:0, cult:1, soc:1, tempo:0, dist:"longe", desc:"Pai pedreiro, mãe diarista. Trabalha à tarde como empacotador num mercado para ajudar em casa."},
+  {id:"camila", nome:"Camila", eco:1, cult:1, soc:1, tempo:1, dist:"muito longe", desc:"Mora no interior do município e pega dois ônibus, 1h30 de viagem, para chegar ao campus."},
+  {id:"rafael", nome:"Rafael", eco:2, cult:1, soc:2, tempo:2, dist:"perto", desc:"O pai tem uma loja de materiais de construção. Rafael ajuda no balcão aos sábados."},
+  {id:"joana", nome:"Joana", eco:1, cult:2, soc:1, tempo:0, dist:"longe", cuida:true, desc:"A mãe, técnica de enfermagem, faz plantões. À tarde, Joana cuida dos dois irmãos menores."},
+  {id:"kaua", nome:"Kauã", eco:0, cult:1, soc:0, tempo:1, dist:"longe", talento:true, desc:"Mora com a avó aposentada num bairro afastado do centro. É o melhor da turma em matemática."},
+  {id:"ana", nome:"Ana", eco:1, cult:1, soc:2, tempo:1, dist:"muito longe", desc:"Filha de agricultores familiares. Na época da colheita, ajuda a família na lavoura."},
+  {id:"thiago", nome:"Thiago", eco:1, cult:3, soc:2, tempo:2, dist:"perto", desc:"Filho de dois professores da rede pública. Em casa há muitos livros e conversa sobre a escola."}
+];
+const CAPS = [["eco","Capital econômico","dinheiro e bens da família"],["cult","Capital cultural","escolaridade da família, livros, cursos"],["soc","Capital social","contatos e indicações"],["tempo","Tempo livre","horas sem trabalho nem cuidado de outros"]];
+
+const EVENTOS = [
+  { titulo:"Prova de matemática amanhã", texto:"A professora avisou: amanhã tem prova. Quem consegue estudar hoje à noite, e com ajuda de quem?",
+    efeito:p=>{ let v=p.cult+p.tempo-1, r=[];
+      r.push(p.cult>=2?"tem quem ajude em casa":"ninguém em casa domina o conteúdo");
+      r.push(p.tempo>=2?"tem a noite livre":p.tempo===1?"tem pouco tempo":"trabalhou ou cuidou dos irmãos até tarde");
+      if(p.talento){ v+=1; r.push("talento para a matemática (+1)"); }
+      return [v, r.join("; ")]; } },
+  { titulo:"O celular quebrou", texto:"A tela trincou e o aparelho parou de funcionar. Os avisos da turma, os materiais e os trabalhos chegam pelo celular.",
+    efeito:p=> p.eco>=2?[0,"comprou outro no mesmo dia"]: p.eco===1?[-1,"ficou uma semana sem celular e perdeu avisos"]:[-2,"ficou um mês sem celular e perdeu um trabalho"] },
+  { titulo:"Greve de ônibus", texto:"Os motoristas entraram em greve por três dias.",
+    efeito:p=> p.dist==="perto"?[0, p.eco>=2?"os pais levaram de carro":"foi a pé"] : p.dist==="longe"?[-1,"faltou um dia e chegou atrasado nos outros"]:[-2,"faltou os três dias"] },
+  { titulo:"Hora do esforço", escolha:true, texto:"Cada grupo decide: o seu perfil vai se esforçar ao máximo neste mês, estudando todos os dias depois da aula?",
+    efeito:(p,esf)=>{ if(!esf) return [0,"decidiu não se esforçar além do normal"];
+      return p.tempo>=2?[3,"estudou todas as tardes, descansado"]: p.tempo===1?[2,"estudou no ônibus e à noite"]:[1,"estudou de madrugada, depois do trabalho ou dos cuidados, e rendeu pouco"]; } },
+  { titulo:"Feira de estágios", texto:"Empresas da região abriram vagas de estágio. Muitas vagas são preenchidas por indicação.",
+    efeito:p=> [p.soc, p.soc>=3?"um tio indicou para uma vaga":p.soc===2?"um conhecido da família avisou da vaga":p.soc===1?"soube da vaga pelo mural, já no fim do prazo":"não conhecia ninguém e não foi chamado"] },
+  { titulo:"Doença na família", texto:"Alguém da casa ficou doente e precisou de cuidados por duas semanas.",
+    efeito:p=> p.cuida?[-2,"faltou duas semanas para cuidar da família"]: p.eco>=2?[0,"plano de saúde e alguém pago para ajudar"]:[-1,"filas no posto e faltas para acompanhar consultas"] },
+  { titulo:"Sorte ou azar", dado:true, texto:"Nem tudo é estrutura: cada perfil joga um dado. 1 = −1 passo · 2 ou 3 = 0 · 4 ou 5 = +1 · 6 = +2.",
+    efeito:(p,_,d)=> [[-1,0,0,1,1,2][d-1], "tirou "+d+" no dado"] },
+  { titulo:"Cursinho pré-vestibular", texto:"O ENEM se aproxima. Quem consegue fazer um cursinho?",
+    efeito:p=> p.eco>=2?[2,"cursinho particular"]: p.tempo>=1?[1,"cursinho popular gratuito, à noite"]:[0,"não há horário livre para o cursinho"] },
+  { titulo:"Políticas públicas", final:true, texto:"Entram em cena as cotas de renda e a assistência estudantil (auxílio transporte e alimentação), para estudantes de escola pública de baixa renda.",
+    efeito:p=> p.eco===0?[3,"cota de renda e auxílio estudantil"]: p.eco===1?[2,"cota de renda"]:[0,"não tem direito: a família tem renda mais alta"] }
+];
+
+const st = { n:6, perfis:[], pos:{}, hist:{}, rodada:-1, revelado:false, esforco:{}, dados:{}, ultimo:{}, patio:false, antesPolitica:null };
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cor = i => `var(--s${i+1})`;
+const pips = v => "●".repeat(v)+"○".repeat(3-v);
+const sinal = v => v>0?"+"+v:v<0?"−"+Math.abs(v):"0";
+
+function inicio(){
+  app.innerHTML=`
+    <header class="top"><div style="display:grid;gap:6px"><span class="label">Sociologia · jogo da desigualdade</span><h1>Mesma Largada?</h1>
+      <p style="max-width:62ch">Cada grupo recebe um perfil de estudante de 16 anos, da mesma turma do mesmo campus. Todos passam pelos mesmos acontecimentos durante o ano. A pergunta é se todos chegam ao mesmo lugar.</p></div></header>
+    <section class="card"><div class="row"><label for="ng"><b>Quantos grupos?</b></label>
+      <select id="ng" style="font:inherit;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)">${[4,5,6,7,8].map(n=>`<option ${n===st.n?"selected":""}>${n}</option>`).join("")}</select>
+      <button class="btn" id="go" type="button">Sortear perfis e começar</button>
+      <label class="row" style="gap:6px"><input type="checkbox" id="pt" ${st.patio?"checked":""}> Modo pátio (letras grandes para jogar ao ar livre)</label></div>
+      <p class="label" style="text-transform:none;letter-spacing:0">No modo pátio, um representante de cada grupo fica numa linha de largada e anda os passos indicados a cada rodada.</p></section>
+    <section class="profiles">${PERFIS.map((p,i)=>cartaoPerfil(p,i)).join("")}</section>
+    <section class="card"><h3>Como jogar (9 rodadas, cerca de 30 minutos)</h3>
+      <ol class="debate"><li>Sorteie os perfis. Cada grupo lê o seu em voz alta para a turma.</li>
+      <li>A cada rodada, leia o acontecimento, peça que os grupos prevejam o efeito no seu perfil e só então revele.</li>
+      <li>Na rodada "Hora do esforço", cada grupo decide se o seu perfil vai se esforçar ao máximo.</li>
+      <li>No fim, compare a distância entre o primeiro e o último antes e depois das políticas públicas.</li></ol></section>`;
+  document.getElementById("pt").onchange=e=>{ st.patio=e.target.checked; };
+  document.getElementById("ng").onchange=e=>{ st.n=+e.target.value; };
+  document.getElementById("go").onclick=()=>{
+    const idx=PERFIS.map((_,i)=>i).sort(()=>Math.random()-.5).slice(0,st.n).sort((a,b)=>a-b);
+    st.perfis=idx; idx.forEach(i=>{ st.pos[i]=0; st.hist[i]=[0]; st.esforco[i]=true; });
+    st.rodada=-1; st.revelado=false; st.antesPolitica=null; apresentacao();
+  };
+}
+function cartaoPerfil(p,i){
+  return `<article class="card prof" style="--c:${cor(i)}"><h3><span class="dot">${esc(p.nome[0])}</span>${esc(p.nome)}, 16 anos</h3><p>${esc(p.desc)}</p>
+    <div class="caps">${CAPS.map(([k,n])=>`<span>${n}</span><span class="pips" aria-label="${p[k]} de 3">${pips(p[k])}</span>`).join("")}<span>Distância do campus</span><span>${p.dist}</span></div></article>`;
+}
+function apresentacao(){
+  app.innerHTML=`<header class="top"><div><span class="label">Perfis sorteados</span><h1>Quem está na largada</h1></div>
+    <div class="row"><button class="btn" id="go" type="button">Começar a primeira rodada</button></div></header>
+    <section class="profiles">${st.perfis.map(i=>cartaoPerfil(PERFIS[i],i)).join("")}</section>
+    <section class="card"><h3>O que são os capitais?</h3><p>Ideia do sociólogo francês Pierre Bourdieu: além do dinheiro (capital econômico), contam os conhecimentos e diplomas da família (capital cultural) e a rede de contatos (capital social). Aqui também entra o tempo livre, que muitos jovens não têm porque trabalham ou cuidam de alguém.</p></section>`;
+  document.getElementById("go").onclick=()=>{ st.rodada=0; st.revelado=false; jogo(); };
+}
+function jogo(){
+  const ev=EVENTOS[st.rodada];
+  const max=Math.max(24, ...st.perfis.map(i=>st.pos[i]+3));
+  app.innerHTML=`<div class="${st.patio?"patio":""}" style="display:grid;gap:16px">
+    <header class="top"><span class="label">Mesma Largada? · rodada ${st.rodada+1} de ${EVENTOS.length}</span><button class="btn ghost small" id="pt" type="button">${st.patio?"Sair do modo pátio":"Modo pátio"}</button></header>
+    <section class="card event"><span class="num">Acontecimento ${st.rodada+1}</span><h2>${esc(ev.titulo)}</h2><p style="font-size:1.1rem;max-width:70ch">${esc(ev.texto)}</p>
+      ${!st.revelado?`<p class="label" style="text-transform:none;letter-spacing:0">Antes de revelar: cada grupo prevê quantos passos o seu perfil vai andar.</p>`:""}</section>
+    <section class="card track" aria-label="Pista">${st.perfis.map(i=>{ const p=PERFIS[i], u=st.ultimo[i];
+      return `<div class="lane"><span class="who"><span class="dot" style="background:${cor(i)}">${esc(p.nome[0])}</span><span>${esc(p.nome)}</span></span>
+        <div class="road" title="${esc(p.nome)}: ${st.pos[i]} passos"><span class="token" style="left:${Math.max(0,st.pos[i])/max*100}%"><span class="dot" style="background:${cor(i)}">${esc(p.nome[0])}</span></span></div>
+        ${ev.escolha && !st.revelado ? `<div class="choice" role="group" aria-label="Escolha de ${esc(p.nome)}"><button type="button" data-i="${i}" data-v="1" aria-pressed="${!!st.esforco[i]}">Sim</button><button type="button" data-i="${i}" data-v="0" aria-pressed="${!st.esforco[i]}">Não</button></div>`
+          : st.revelado ? `<span class="delta ${u[0]>0?"up":u[0]<0?"down":"zero"}">${sinal(u[0])}</span>` : `<span class="delta zero">${st.pos[i]}</span>`}
+        ${st.revelado?`<span class="why">${esc(u[1])}</span>`:""}</div>`; }).join("")}</section>
+    <div class="row">${!st.revelado?`<button class="btn" id="rev" type="button">${ev.dado?"Jogar os dados e revelar":"Revelar o efeito"}</button>`
+      : st.rodada<EVENTOS.length-1?`<button class="btn" id="next" type="button">Próxima rodada</button>`:`<button class="btn" id="fim" type="button">Ver o resultado</button>`}
+      ${st.revelado && st.patio?`<span class="label" style="text-transform:none;letter-spacing:0;font-size:1rem">Representantes: andem os passos indicados (para trás quando negativo).</span>`:""}</div>
+  </div>`;
+  document.getElementById("pt").onclick=()=>{ st.patio=!st.patio; jogo(); };
+  app.querySelectorAll(".choice button").forEach(b=>b.onclick=()=>{ st.esforco[+b.dataset.i]=b.dataset.v==="1"; jogo(); });
+  const rev=document.getElementById("rev");
+  if(rev) rev.onclick=()=>{
+    if(ev.final) st.antesPolitica = st.perfis.map(i=>st.pos[i]);
+    st.perfis.forEach(i=>{ const d=1+Math.floor(Math.random()*6); const r=ev.efeito(PERFIS[i], st.esforco[i], d); st.ultimo[i]=r; });
+    st.revelado=true; jogo();
+    requestAnimationFrame(()=>{ st.perfis.forEach(i=>{ st.pos[i]+=st.ultimo[i][0]; st.hist[i].push(st.pos[i]); });
+      const max2=Math.max(24, ...st.perfis.map(i=>st.pos[i]+3));
+      app.querySelectorAll(".lane").forEach((ln,k)=>{ const i=st.perfis[k]; ln.querySelector(".token").style.left=Math.max(0,st.pos[i])/max2*100+"%"; ln.querySelector(".road").title=PERFIS[i].nome+": "+st.pos[i]+" passos"; }); });
+  };
+  const nx=document.getElementById("next"); if(nx) nx.onclick=()=>{ st.rodada++; st.revelado=false; jogo(); window.scrollTo({top:0}); };
+  const fm=document.getElementById("fim"); if(fm) fm.onclick=resultado;
+}
+function grafico(){
+  const W=900,H=380,L=40,R=120,T=16,B=36, n=EVENTOS.length;
+  const all=st.perfis.flatMap(i=>st.hist[i]); const ymin=Math.min(0,...all), ymax=Math.max(...all)+1;
+  const x=k=>L+k*(W-L-R)/n, y=v=>T+(ymax-v)*(H-T-B)/(ymax-ymin);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Posição de cada perfil ao longo das rodadas">`;
+  for(let v=Math.ceil(ymin/5)*5; v<=ymax; v+=5) s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${v}</text>`;
+  for(let k=0;k<=n;k++) s+=`<text x="${x(k)}" y="${H-12}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${k===0?"início":k}</text>`;
+  s+=`<line x1="${x(n-1)}" x2="${x(n-1)}" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="${x(n-1)+4}" y="${T+12}" font-size="12" fill="var(--muted)">políticas públicas</text>`;
+  // rótulos finais sem sobreposição
+  const ends=st.perfis.map(i=>({i, v:st.hist[i][n], yy:y(st.hist[i][n])})).sort((a,b)=>a.yy-b.yy);
+  for(let k=1;k<ends.length;k++) if(ends[k].yy-ends[k-1].yy<16) ends[k].yy=ends[k-1].yy+16;
+  st.perfis.forEach(i=>{ const pts=st.hist[i].map((v,k)=>`${x(k)},${y(v)}`).join(" ");
+    s+=`<polyline points="${pts}" fill="none" stroke="${cor(i)}" stroke-width="2.5" stroke-linejoin="round"><title>${esc(PERFIS[i].nome)}: ${st.hist[i].join(" → ")}</title></polyline>`;
+    s+=`<circle cx="${x(n)}" cy="${y(st.hist[i][n])}" r="4.5" fill="${cor(i)}" stroke="var(--card)" stroke-width="2"/>`; });
+  ends.forEach(e=>{ s+=`<text x="${x(n)+10}" y="${e.yy+4}" font-size="13" fill="var(--ink)" font-weight="700">${esc(PERFIS[e.i].nome)} ${e.v}</text>`; });
+  return s+`</svg>`;
+}
+function resultado(){
+  const fin=st.perfis.map(i=>st.pos[i]); const gap=Math.max(...fin)-Math.min(...fin);
+  const gapAntes=st.antesPolitica?Math.max(...st.antesPolitica)-Math.min(...st.antesPolitica):gap;
+  const ord=[...st.perfis].sort((a,b)=>st.pos[b]-st.pos[a]);
+  app.innerHTML=`<header class="top"><div><span class="label">Mesma Largada? · resultado</span><h1>Mesma largada, chegadas diferentes</h1></div>
+      <div class="row"><button class="btn ghost" id="nova" type="button">Jogar de novo</button></div></header>
+    <section class="card"><div class="row" style="gap:36px">
+      <div><span class="label">distância entre o primeiro e o último</span><div style="font-family:var(--display);font-weight:900;font-size:3rem;line-height:1">${gapAntes} → ${gap} passos</div><span class="label" style="text-transform:none;letter-spacing:0">antes → depois das políticas públicas</span></div>
+      <div><span class="label">chegada</span><ol style="margin:4px 0 0;padding-left:1.2em">${ord.map(i=>`<li><b>${esc(PERFIS[i].nome)}</b>: ${st.pos[i]} passos</li>`).join("")}</ol></div></div></section>
+    <section class="card"><h3>Trajetória de cada perfil</h3>${grafico()}
+      <p class="label" style="text-transform:none;letter-spacing:0">Todos começaram no zero e passaram pelos mesmos acontecimentos.</p></section>
+    <section class="card"><h3>Para discutir</h3><ol class="debate">
+      <li>Na "Hora do esforço", quase todos se esforçaram. A distância diminuiu? O esforço vale o mesmo para quem não tem tempo livre?</li>
+      <li>Kauã é o mais talentoso em matemática. Onde ele chegou? Talento basta?</li>
+      <li>Quanto do resultado veio da sorte (o dado) e quanto da estrutura (os capitais)?</li>
+      <li>As políticas públicas reduziram a distância? Por que elas existem, e por que há quem as critique?</li>
+      <li>Que desigualdades reais o jogo não mostra? Pensem em gênero, cor ou raça, deficiência e moradia.</li>
+      <li>Meritocracia: o que a palavra promete, e em que condições essa promessa se cumpre?</li></ol></section>`;
+  document.getElementById("nova").onclick=inicio;
+}
+inicio();
+</script>
+
+</body></html>

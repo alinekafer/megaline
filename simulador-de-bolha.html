@@ -1,0 +1,225 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Simulador de Bolha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..900&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: dois celulares lado a lado (usuários A e B) e, abaixo, o painel que revela o que o algoritmo aprendeu sobre cada um. */
+:root{
+  --ground:#f3f4f6; --card:#ffffff; --ink:#1b1f3b; --muted:#5b6078; --line:#dfe2ea; --phone:#1b1f3b;
+  --accent:#1b1f3b; --accent-ink:#ffffff; --a:#2a78d6; --b:#eb6834; --soft:#eef3fb; --parque:#1baf7a; --estac:#6250d6; --neutro:#8a8fa6;
+  --display:"Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#11131c; --card:#1a1d29; --ink:#e8eaf3; --muted:#a3a8bf; --line:#2c3042; --phone:#05060a;
+  --accent:#e8eaf3; --accent-ink:#11131c; --a:#3987e5; --b:#d95926; --soft:#1d2536; --parque:#199e70; --estac:#9085e9; --neutro:#6f7488; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --ground:#11131c; --card:#1a1d29; --ink:#e8eaf3; --muted:#a3a8bf; --line:#2c3042; --phone:#05060a;
+  --accent:#e8eaf3; --accent-ink:#11131c; --a:#3987e5; --b:#d95926; --soft:#1d2536; --parque:#199e70; --estac:#9085e9; --neutro:#6f7488; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;margin:0}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:16px}
+h1,h2,h3{font-family:var(--display);font-stretch:80%;margin:0;line-height:1.05;text-wrap:balance}
+h1{font-weight:900;font-size:clamp(2.2rem,6vw,3.4rem)}
+h2{font-weight:800;font-size:clamp(1.3rem,3vw,1.7rem)}
+h3{font-weight:700;font-size:1.05rem;font-stretch:90%}
+p{margin:0}
+.label{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--a);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:9px 16px;font-weight:700}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px;min-width:0}
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px}
+.phone{background:var(--phone);border-radius:28px;padding:12px;display:grid;gap:10px}
+.phone header{display:flex;justify-content:space-between;align-items:center;color:#fff;padding:4px 8px}
+.phone header b{font-family:var(--display);font-size:1.3rem;font-stretch:85%}
+.tagU{border-radius:999px;padding:2px 10px;font-weight:700;font-size:.85rem;color:#fff}
+.feed{display:grid;gap:8px}
+.post{background:var(--card);border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.post .who{display:flex;gap:8px;align-items:center;font-weight:700;font-size:.9rem}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:.8rem;background:var(--neutro)}
+.post .txt{font-size:1.02rem}
+.post .txt.sens{font-weight:700}
+.post .why{font-size:.78rem;color:var(--muted)}
+.acts{display:flex;gap:8px}
+.acts button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px;font-weight:700;font-size:.92rem}
+.acts button.like:hover{border-color:var(--a)}
+.meta{color:#c9cce0;font-size:.82rem;padding:0 8px}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:110px minmax(0,1fr) 40px;gap:8px;align-items:center;font-size:.88rem}
+.bar .t{height:12px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar .t i{display:block;height:100%;border-radius:0 3px 3px 0}
+.bar .n{font-family:var(--mono);font-size:.8rem;text-align:right;font-variant-numeric:tabular-nums}
+.stance{display:grid;gap:4px}
+.stance .scale{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--parque),var(--line) 50%,var(--estac))}
+.stance .mark{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;border:3px solid var(--card);transform:translate(-50%,-50%);transition:left .4s}
+.stance .ends{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.stack{display:flex;height:28px;border-radius:6px;overflow:hidden;gap:2px;background:var(--card)}
+.stack span{display:grid;place-items:center;color:#fff;font-size:.8rem;font-weight:700;min-width:0;overflow:hidden;white-space:nowrap}
+.ask{background:var(--soft);border-radius:8px;padding:10px 12px}
+.hidden{border:2px dashed var(--line);border-radius:12px;padding:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+// Cidade fictícia, debate fictício: nada aqui se refere a pessoas, partidos ou fatos reais.
+const POSTS = [
+  // debate da cidade: P = parque, E = estacionamento, null = informação neutra
+  {id:1, autor:"Coletivo Verde Vila", tema:"cidade", lado:"P", sens:true,  txt:"URGENTE: querem acabar com a última área verde da cidade para colocar CARROS. Compartilhe antes que seja tarde!"},
+  {id:2, autor:"Marta, moradora", tema:"cidade", lado:"P", sens:false, txt:"Domingo teve piquenique na antiga estação. Muitas famílias pediram que o terreno vire parque."},
+  {id:3, autor:"Ciência na Praça", tema:"cidade", lado:"P", sens:false, txt:"Pesquisas mostram que parques ajudam a reduzir o calor nos bairros ao redor. Um argumento a favor do parque na antiga estação."},
+  {id:4, autor:"Vila Sem Concreto", tema:"cidade", lado:"P", sens:true,  txt:"Quem defende estacionamento NÃO liga para as crianças desta cidade. Simples assim."},
+  {id:5, autor:"Associação Comercial", tema:"cidade", lado:"E", sens:false, txt:"Apresentamos proposta de estacionamento com bicicletário e 20 vagas para pessoas com deficiência na antiga estação."},
+  {id:6, autor:"Seu Jorge da Ferragem", tema:"cidade", lado:"E", sens:true,  txt:"As lojas do centro vão FECHAR se não houver onde estacionar. Ninguém pensa em quem gera emprego!"},
+  {id:7, autor:"Grupo da Terceira Idade", tema:"cidade", lado:"E", sens:false, txt:"Para quem tem dificuldade de andar, vaga perto do centro faz falta. Pedimos que nossa opinião seja ouvida."},
+  {id:8, autor:"Vila Real News", tema:"cidade", lado:"E", sens:true,  txt:"EXCLUSIVO: 'turma do parque' quer proibir carros no centro. Você vai aceitar isso?"},
+  {id:9, autor:"Prefeitura de Vila Esperança", tema:"cidade", lado:null, sens:false, txt:"Divulgado o estudo técnico com custos e prazos das duas propostas para a antiga estação. Audiência pública dia 12, às 19h."},
+  {id:10, autor:"Rádio Comunitária", tema:"cidade", lado:null, sens:false, txt:"Na audiência, moradores propuseram uma terceira opção: parque com algumas vagas de estacionamento rotativo."},
+  {id:25, autor:"Abraço Verde", tema:"cidade", lado:"P", sens:false, txt:"O abaixo-assinado pelo parque na antiga estação já passou de 2 mil assinaturas."},
+  {id:26, autor:"Profe de Biologia", tema:"cidade", lado:"P", sens:false, txt:"As árvores da antiga estação abrigam ninhos de joão-de-barro. Um parque preservaria esse pedaço de natureza no centro."},
+  {id:27, autor:"Skate Vila", tema:"cidade", lado:"P", sens:false, txt:"Os skatistas da cidade pedem uma pista no futuro parque da antiga estação."},
+  {id:28, autor:"Fala Vila", tema:"cidade", lado:"P", sens:true,  txt:"VERGONHA: quem defende o estacionamento só pensa no próprio bolso. Abra os olhos!"},
+  {id:29, autor:"Associação Comercial", tema:"cidade", lado:"E", sens:false, txt:"Pesquisa da associação: motoristas rodam até 20 minutos atrás de vaga no centro."},
+  {id:30, autor:"Feirantes do Centro", tema:"cidade", lado:"E", sens:false, txt:"Os feirantes pedem espaço para carga e descarga na antiga estação."},
+  {id:31, autor:"Vila Inova", tema:"cidade", lado:"E", sens:false, txt:"Proposta prevê estacionamento com placas solares no telhado e árvores nas laterais."},
+  {id:32, autor:"Vila Real News", tema:"cidade", lado:"E", sens:true,  txt:"ABSURDO: querem transformar o centro num parque e deixar o trabalhador a pé!"},
+  {id:33, autor:"Jornal da Vila", tema:"cidade", lado:null, sens:false, txt:"Entenda em 5 pontos o que está em jogo na antiga estação: custos, prazos e quem decide."},
+  // outros assuntos
+  {id:11, autor:"Tigres do Pampa FC", tema:"futebol", lado:null, sens:false, txt:"Vitória no clássico! Os Tigres sobem para a segunda posição."},
+  {id:12, autor:"Resenha Esportiva", tema:"futebol", lado:null, sens:true,  txt:"POLÊMICA: árbitro anulou gol legítimo? Veja o lance que está dividindo a torcida."},
+  {id:13, autor:"Base dos Tigres", tema:"futebol", lado:null, sens:false, txt:"Peneira para o time sub-17 no sábado. Inscrições abertas no estádio."},
+  {id:14, autor:"Palco Sul", tema:"musica", lado:null, sens:false, txt:"Festival de bandas da escola: as inscrições vão até sexta-feira."},
+  {id:15, autor:"Playlist da Semana", tema:"musica", lado:null, sens:false, txt:"Dez músicas para estudar com foco. Qual você colocaria na lista?"},
+  {id:16, autor:"Fofoca Musical", tema:"musica", lado:null, sens:true,  txt:"VOCÊ NÃO VAI ACREDITAR no que a cantora disse sobre o ex no show de ontem."},
+  {id:17, autor:"Pixel Gamer", tema:"games", lado:null, sens:false, txt:"Campeonato de jogos no ginásio da escola: monte o seu time de cinco."},
+  {id:18, autor:"Pixel Gamer", tema:"games", lado:null, sens:true,  txt:"Esse truque secreto deixa qualquer um no ranking máximo (os desenvolvedores odeiam)."},
+  {id:19, autor:"Lab de Robótica", tema:"ciencia", lado:null, sens:false, txt:"Estudantes do curso técnico montam um braço robótico com sucata eletrônica."},
+  {id:20, autor:"Céu de Hoje", tema:"ciencia", lado:null, sens:false, txt:"Hoje à noite dá para ver Júpiter a olho nu, logo depois do pôr do sol."},
+  {id:21, autor:"Curiosidades", tema:"ciencia", lado:null, sens:true,  txt:"Cientistas ficaram CHOCADOS com o que encontraram no fundo do oceano."},
+  {id:22, autor:"Meme da Vila", tema:"humor", lado:null, sens:false, txt:"Quando a professora diz 'é só uma pergunta rápida' e a pergunta tem quatro partes."},
+  {id:23, autor:"Meme da Vila", tema:"humor", lado:null, sens:false, txt:"O wi-fi da escola quando chega a hora de entregar o trabalho:"},
+  {id:24, autor:"Humor Gaúcho", tema:"humor", lado:null, sens:false, txt:"Previsão do tempo para amanhã: as quatro estações, em ordem aleatória."}
+];
+const TEMAS = {cidade:"Debate da cidade", futebol:"Futebol", musica:"Música", games:"Games", ciencia:"Ciência", humor:"Humor"};
+const LADO = {P:"Parque", E:"Estacionamento"};
+const POR_TELA = 3;
+const MAX_TELAS = 6;
+
+function novoUsuario(nome, cor){
+  return { nome, cor, tema:Object.fromEntries(Object.keys(TEMAS).map(k=>[k,0])), lado:0, sens:0, vistos:[], curtidos:[], feed:[], rodadas:0 };
+}
+const U = [novoUsuario("Usuário A","var(--a)"), novoUsuario("Usuário B","var(--b)")];
+let comparar=false, seed=11;
+const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+
+// O "algoritmo": quanto mais você interage com um assunto, um lado e com posts chamativos, mais deles você vê.
+function pontua(u,p){
+  const neutro = p.tema==="cidade" && p.lado===null;
+  let s = 1 + u.tema[p.tema]*(neutro?0.2:1.0);
+  if(p.lado==="P") s += Math.max(0,-u.lado)*1.3 - Math.max(0,u.lado)*1.6;
+  if(p.lado==="E") s += Math.max(0, u.lado)*1.3 - Math.max(0,-u.lado)*1.6;
+  if(p.sens) s += 0.6 + u.sens*0.8;      // posts chamativos geram mais engajamento
+  if(neutro) s = 0.3;  // informação neutra engaja menos e fica para trás
+  return s + rnd()*0.6;
+}
+function proximoFeed(u){
+  const pool = POSTS.filter(p=>!u.vistos.includes(p.id));
+  if(pool.length===0) return [];
+  return pool.map(p=>({p, s:pontua(u,p)})).sort((a,b)=>b.s-a.s).slice(0,POR_TELA).map(x=>x.p);
+}
+function motivo(u,p){
+  const r=[];
+  if(u.tema[p.tema]>=1) r.push("você curtiu posts de "+TEMAS[p.tema].toLowerCase());
+  if(p.lado==="P" && u.lado<0) r.push("você costuma curtir posts a favor do parque");
+  if(p.lado==="E" && u.lado>0) r.push("você costuma curtir posts a favor do estacionamento");
+  if(p.sens && u.sens>=1) r.push("posts chamativos prendem a sua atenção");
+  return r.length ? "Você está vendo isto porque "+r.join(" e ")+"." : "Sugestão para conhecer o seu gosto.";
+}
+function reage(k, id, curtiu){
+  const u=U[k], p=POSTS.find(x=>x.id===id);
+  if(curtiu){ u.tema[p.tema]+=1; if(p.lado==="P") u.lado-=1; if(p.lado==="E") u.lado+=1; if(p.sens) u.sens+=1; u.curtidos.push(id); }
+  else { u.tema[p.tema]=Math.max(-1,u.tema[p.tema]-0.4); }
+  u.feed = u.feed.filter(x=>x.id!==id);
+  if(u.feed.length===0){ u.rodadas++; u.feed = u.rodadas<MAX_TELAS ? proximoFeed(u) : []; u.feed.forEach(x=>u.vistos.push(x.id)); }
+  render();
+}
+function iniciar(){
+  seed=11; comparar=false;
+  U[0]=novoUsuario("Usuário A","var(--a)"); U[1]=novoUsuario("Usuário B","var(--b)");
+  // primeira tela igual para os dois: o algoritmo ainda não sabe nada
+  const primeira=[POSTS.find(p=>p.id===1), POSTS.find(p=>p.id===6), POSTS.find(p=>p.id===11)];
+  U.forEach(u=>{ u.feed=[...primeira]; primeira.forEach(p=>u.vistos.push(p.id)); });
+  render();
+}
+
+const app=document.getElementById("app");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const corLado = l => l==="P"?"var(--parque)":l==="E"?"var(--estac)":"var(--neutro)";
+
+function telefone(k){
+  const u=U[k];
+  const posts = u.feed.length ? u.feed.map(p=>`<article class="post">
+      <div class="who"><span class="av" style="background:${p.tema==="cidade"?corLado(p.lado):"var(--neutro)"}">${esc(p.autor[0])}</span>${esc(p.autor)}</div>
+      <p class="txt ${p.sens?"sens":""}">${esc(p.txt)}</p>
+      <p class="why">${esc(motivo(u,p))}</p>
+      <div class="acts"><button class="like" type="button" data-k="${k}" data-id="${p.id}" data-v="1">Curtir</button><button type="button" data-k="${k}" data-id="${p.id}" data-v="0">Passar</button></div></article>`).join("")
+    : `<article class="post"><p><b>O tempo de tela acabou.</b> Quando os dois lados terminarem, cliquem em "Comparar as bolhas".</p></article>`;
+  return `<section class="phone" aria-label="${u.nome}"><header><b>${u.nome}</b><span class="tagU" style="background:${u.cor}">${u.vistos.length} posts vistos</span></header>
+    <div class="feed">${posts}</div><p class="meta">Tela ${Math.min(u.rodadas+1,MAX_TELAS)} de ${MAX_TELAS}</p></section>`;
+}
+function perfilAlgoritmo(u){
+  const vals=Object.entries(u.tema); const mx=Math.max(1,...vals.map(v=>v[1]));
+  const pos=50+Math.max(-5,Math.min(5,u.lado))*10;
+  return `<div class="card"><h3 style="color:${u.cor}">O que o algoritmo pensa do ${u.nome}</h3>
+    <div class="bars">${vals.map(([k,v])=>`<div class="bar"><span>${TEMAS[k]}</span><span class="t"><i style="width:${Math.max(0,v)/mx*100}%;background:${u.cor}"></i></span><span class="n">${Math.max(0,v).toFixed(v%1?1:0)}</span></div>`).join("")}</div>
+    <div class="stance"><span class="label">Opinião sobre a antiga estação</span><div class="scale"><span class="mark" style="left:${pos}%;background:var(--ink)"></span></div><div class="ends"><span>Parque</span><span>neutro</span><span>Estacionamento</span></div></div>
+    <p class="label" style="text-transform:none;letter-spacing:0">Gosto por posts chamativos: ${u.sens}</p></div>`;
+}
+function composicao(u){
+  const vistos=u.vistos.map(id=>POSTS.find(p=>p.id===id)).filter(p=>p.tema==="cidade");
+  const c={P:0,E:0,N:0}; vistos.forEach(p=>c[p.lado||"N"]++); const n=vistos.length||1;
+  const seg=(k,lbl,col)=>c[k]?`<span style="width:${c[k]/n*100}%;background:${col}" title="${lbl}: ${c[k]}">${c[k]}</span>`:"";
+  const naoViu=POSTS.filter(p=>p.tema==="cidade"&&!u.vistos.includes(p.id));
+  return `<div class="card"><h3 style="color:${u.cor}">${u.nome}: o que viu sobre a antiga estação</h3>
+    <div class="stack" role="img" aria-label="Parque ${c.P}, estacionamento ${c.E}, informação neutra ${c.N}">${seg("P","A favor do parque","var(--parque)")}${seg("N","Informação neutra","var(--neutro)")}${seg("E","A favor do estacionamento","var(--estac)")}</div>
+    <div class="hidden"><span class="label">Nunca apareceu para o ${u.nome} (${naoViu.length})</span>
+      <ul style="margin:6px 0 0;padding-left:1.1em;display:grid;gap:4px;font-size:.92rem">${naoViu.map(p=>`<li><b style="color:${corLado(p.lado)}">${p.lado?LADO[p.lado]:"Neutro"}:</b> ${esc(p.txt)}</li>`).join("")||"<li>Viu todos.</li>"}</ul></div></div>`;
+}
+function render(){
+  app.innerHTML=`
+    <header class="row" style="justify-content:space-between;align-items:end"><div style="display:grid;gap:6px"><span class="label">Sociologia · algoritmos e opinião pública</span><h1>Simulador de Bolha</h1>
+      <p style="max-width:66ch">Na cidade fictícia de Vila Esperança do Sul, o terreno da antiga estação vai virar parque ou estacionamento. Metade da turma controla o Usuário A, a outra metade o Usuário B. Cada lado vota no que curtir e no que passar.</p></div>
+      <div class="row"><button class="btn ${comparar?"ghost":""}" id="cmp" type="button">${comparar?"Voltar aos feeds":"Comparar as bolhas"}</button><button class="btn ghost" id="reset" type="button">Recomeçar</button></div></header>
+    ${comparar ? `
+      <section class="card"><h2>Mesma cidade, duas realidades</h2><p>Os dois usuários começaram com a mesma tela. Agora vejam o que cada um viu sobre o mesmo debate e o que ficou de fora.</p>
+        <div class="legend"><span><i style="background:var(--parque)"></i>A favor do parque</span><span><i style="background:var(--neutro)"></i>Informação neutra</span><span><i style="background:var(--estac)"></i>A favor do estacionamento</span></div></section>
+      <section class="cmp">${composicao(U[0])}${composicao(U[1])}</section>
+      <section class="cmp">${perfilAlgoritmo(U[0])}${perfilAlgoritmo(U[1])}</section>
+      <section class="card"><h3>Como este algoritmo decide</h3>
+        <p>A cada tela, ele dá pontos para cada post que você ainda não viu: mais pontos para os assuntos e o lado do debate que você curtiu, e um bônus para posts chamativos, que costumam render mais cliques. A informação neutra, como o estudo de custos da prefeitura, rende menos cliques e fica para trás. Redes reais usam milhares de sinais, mas a lógica de premiar o engajamento é parecida.</p></section>
+      <section class="card"><h3>Para discutir</h3><ol style="margin:0;padding-left:1.2em;display:grid;gap:6px">
+        <li>Algum dos usuários viu o estudo da prefeitura com os custos das duas propostas? Por que ele ficou escondido?</li>
+        <li>Se A e B fossem discutir a antiga estação, eles conseguiriam concordar sobre os fatos?</li>
+        <li>Quem escolheu o que cada usuário viu: o usuário, o algoritmo ou a empresa que o programou?</li>
+        <li>Posts chamativos e agressivos aparecem mais. Que efeito isso tem sobre a conversa pública?</li>
+        <li>O que cada um pode fazer para sair da própria bolha?</li></ol></section>`
+    : `<section class="phones">${telefone(0)}${telefone(1)}</section>
+       <p class="label" style="text-transform:none;letter-spacing:0">Cada usuário tem 6 telas de 3 posts. Um lado pode curtir tudo sobre o parque e o outro tudo sobre o estacionamento, ou cada metade da turma decide por votação.</p>`}`;
+  app.querySelectorAll(".acts button").forEach(b=>b.onclick=()=>reage(+b.dataset.k, +b.dataset.id, b.dataset.v==="1"));
+  document.getElementById("cmp").onclick=()=>{ comparar=!comparar; render(); window.scrollTo({top:0}); };
+  document.getElementById("reset").onclick=iniciar;
+}
+iniciar();
+</script>
+
+</body></html>

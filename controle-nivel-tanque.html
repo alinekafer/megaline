@@ -1,0 +1,656 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Controle de Nível em Tanque</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: painel de operação (HMI) — planta + faceplate à esquerda, tendência à direita, sintonia e perturbações abaixo */
+:root{
+  --bg:#EEF2F3; --panel:#FFFFFF; --panel2:#F6F8F9; --ink:#1B2A33; --muted:#5A6B75; --line:#D3DCE0;
+  --water:#1F7FBF; --water-soft:rgba(31,127,191,.16); --sp:#B9770E; --mv:#6A56A8; --accent:#0E6B78; --accent-ink:#FFFFFF;
+  --ok:#2E7D4F; --alarm:#C2412F; --steel:#8A9AA3;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F161A; --panel:#162027; --panel2:#1B2730; --ink:#E2E9ED; --muted:#93A3AC; --line:#2A3842;
+  --water:#4BA6DF; --water-soft:rgba(75,166,223,.18); --sp:#E2A33B; --mv:#A693DA; --accent:#3BB0BF; --accent-ink:#06191C;
+  --ok:#5BB982; --alarm:#EE6F5C; --steel:#5F717B; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F161A; --panel:#162027; --panel2:#1B2730; --ink:#E2E9ED; --muted:#93A3AC; --line:#2A3842;
+  --water:#4BA6DF; --water-soft:rgba(75,166,223,.18); --sp:#E2A33B; --mv:#A693DA; --accent:#3BB0BF; --accent-ink:#06191C;
+  --ok:#5BB982; --alarm:#EE6F5C; --steel:#5F717B; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(26px,3.4vw,36px);font-weight:700;letter-spacing:.01em}
+h2{font-size:17px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lede{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.eyebrow{font-family:var(--f-display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select,input{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 14px;border-radius:var(--r);cursor:pointer;font-family:var(--f-display);font-weight:600;letter-spacing:.04em}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{border:1px solid var(--line);background:var(--panel);padding:7px 8px;border-radius:var(--r)}
+.clock{font-family:var(--f-mono);font-size:13px;color:var(--muted);padding-inline:6px}
+
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.grid,.grid3{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Planta (SVG) */
+.plant svg{width:100%;height:auto;display:block}
+.pipe{fill:none;stroke:var(--steel);stroke-width:7;stroke-linecap:square}
+.flow{fill:none;stroke:var(--water);stroke-width:3;stroke-dasharray:7 7;opacity:0}
+.flow.on{opacity:1;animation:dash 0.8s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-14}}
+@media (prefers-reduced-motion:reduce){.flow.on{animation:none}}
+.sig{fill:none;stroke:var(--muted);stroke-width:1.4;stroke-dasharray:5 4}
+.bubble{fill:var(--panel);stroke:var(--ink);stroke-width:1.5}
+.tag{font-family:var(--f-mono);font-size:10px;fill:var(--ink);text-anchor:middle}
+.lbl{font-family:var(--f-display);font-size:12px;fill:var(--muted);letter-spacing:.05em}
+.tankwall{fill:var(--panel2);stroke:var(--ink);stroke-width:2}
+.watr{fill:var(--water);opacity:.85}
+.spline{stroke:var(--sp);stroke-width:2;stroke-dasharray:6 4}
+.valve{fill:var(--panel);stroke:var(--ink);stroke-width:1.5}
+.valve.open{fill:var(--water)}
+.pump{fill:var(--panel);stroke:var(--ink);stroke-width:1.8}
+.pump.on{fill:var(--water-soft)}
+.levtxt{font-family:var(--f-mono);font-size:20px;font-weight:600;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--panel2);stroke-width:4px}
+
+/* Faceplate */
+.face{border:1px solid var(--line);border-radius:var(--r);background:var(--panel2);padding:12px;display:flex;flex-direction:column;gap:10px}
+.face-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.face-tag{font-family:var(--f-mono);font-weight:600;font-size:14px}
+.modes{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.modes button{border:0;background:var(--panel);padding:6px 14px;cursor:pointer;font-family:var(--f-display);font-weight:700;letter-spacing:.08em}
+.modes button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.rows{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:baseline}
+.rows dt{font-family:var(--f-display);font-weight:600;letter-spacing:.06em;font-size:13px;color:var(--muted)}
+.rows dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;text-align:right}
+.rows dd small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.pv{color:var(--water)} .spc{color:var(--sp)} .mvc{color:var(--mv)}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--mv);width:0}
+.terms{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.terms span{border:1px solid var(--line);border-radius:4px;padding:2px 6px;background:var(--panel)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;min-height:24px}
+.pill{font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.08em;padding:3px 8px;border-radius:999px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.alarm{color:var(--alarm);background:color-mix(in srgb,var(--alarm) 12%,transparent)}
+.note{font-size:13px;color:var(--muted);margin:0}
+
+/* Controles */
+.ctl{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:4px 10px;align-items:center}
+.ctl label{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
+.ctl label span{font-weight:400;color:var(--muted);font-size:12px;font-family:var(--f-mono)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=number]{width:100%;border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:5px 6px;font-family:var(--f-mono);font-size:14px;text-align:right}
+input:disabled{opacity:.45}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.presets .btn{padding:5px 10px;font-size:13px}
+.checks{display:flex;flex-direction:column;gap:6px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.check input{margin-top:3px;accent-color:var(--accent)}
+.check small{display:block;color:var(--muted)}
+.sp-steps{display:flex;gap:6px;flex-wrap:wrap}
+
+/* Tendência */
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+.chartbox{position:relative;width:100%;height:320px}
+@media (max-width:600px){.chartbox{height:240px}}
+canvas{width:100%;height:100%;display:block}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.metric{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;background:var(--panel2);display:flex;flex-direction:column;gap:2px;min-width:0}
+.metric b{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.metric output{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:19px;font-weight:600;overflow-wrap:anywhere}
+.metric output.wait{font-size:14px;font-weight:400;color:var(--muted)}
+.metric small{color:var(--muted);font-size:11.5px}
+.event{font-size:13.5px;color:var(--muted)}
+.event strong{color:var(--ink);font-weight:600}
+
+details.panel summary{cursor:pointer;font-family:var(--f-display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-size:17px}
+.params{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.param label{display:block;font-weight:600;font-size:14px;margin-bottom:4px}
+.param small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.eq{font-family:var(--f-mono);font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;overflow-x:auto}
+ol.tasks{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;max-width:80ch}
+ol.tasks li::marker{font-family:var(--f-mono);color:var(--accent);font-weight:600}
+ol.tasks strong{font-family:var(--f-display);letter-spacing:.02em}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Laboratório de Controle Industrial · Malha LIC-101</div>
+      <h1>Controle de Nível em Tanque</h1>
+      <p class="lede">Bomba na entrada, saída livre por gravidade. Sintonize o PID, alterne entre manual e automático e aplique perturbações para ver como a malha responde.</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="runBtn" type="button">Pausar</button>
+      <button class="btn" id="resetBtn" type="button">Reiniciar</button>
+      <label for="speed" class="note">Velocidade</label>
+      <select id="speed">
+        <option value="1">1×</option><option value="5">5×</option><option value="10" selected>10×</option><option value="20">20×</option><option value="50">50×</option>
+      </select>
+      <span class="clock" id="clock">t = 0 s</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="panel plant" aria-label="Planta e controlador">
+      <div class="panel-head"><h2>Planta</h2><div class="pills" id="alarms"></div></div>
+      <svg viewBox="0 0 400 318" role="img" aria-label="Diagrama da planta: bomba P-101 alimenta o tanque, saída pela válvula HV-102, vazamento pela HV-103, transmissor LT-101 e controlador LIC-101">
+        <!-- reservatório -->
+        <rect x="16" y="272" width="368" height="36" rx="3" fill="var(--water-soft)" stroke="var(--steel)" stroke-width="1.5"/>
+        <text x="200" y="295" class="lbl" text-anchor="middle">RESERVATÓRIO</text>
+        <!-- linha de recalque -->
+        <path class="pipe" d="M70 272 V246"/>
+        <path class="pipe" d="M70 214 V36 H176 V60"/>
+        <path class="flow" id="fIn" d="M70 272 V246 M70 214 V36 H176 V60"/>
+        <!-- bomba -->
+        <circle class="pump" id="pump" cx="70" cy="230" r="16"/>
+        <path d="M62 239 L70 220 L78 239 Z" fill="var(--ink)"/>
+        <text x="40" y="262" class="tag" text-anchor="middle">P-101</text>
+        <!-- tanque -->
+        <rect class="tankwall" x="150" y="60" width="120" height="190" rx="3"/>
+        <rect class="watr" id="water" x="152" y="200" width="116" height="48"/>
+        <line class="spline" id="spLine" x1="146" x2="274" y1="150" y2="150"/>
+        <text class="lbl" id="spTag" x="148" y="146" text-anchor="end" style="fill:var(--sp)">SP</text>
+        <line id="lahLine" x1="262" x2="270" y1="80" y2="80" stroke="var(--alarm)" stroke-width="2"/>
+        <text id="lahTxt" x="258" y="84" class="lbl" text-anchor="end" style="font-size:10px">LAH</text>
+        <line id="lalLine" x1="262" x2="270" y1="230" y2="230" stroke="var(--alarm)" stroke-width="2"/>
+        <text id="lalTxt" x="258" y="234" class="lbl" text-anchor="end" style="font-size:10px">LAL</text>
+        <text class="levtxt" id="levTxt" x="210" y="160">0,0 cm</text>
+        <text x="210" y="76" class="tag">TQ-101</text>
+        <!-- saída -->
+        <path class="pipe" d="M270 238 H350 V272"/>
+        <path class="flow" id="fOut" d="M270 238 H350 V272"/>
+        <path class="valve" id="vOut" d="M302 228 L302 248 L322 238 Z M342 228 L342 248 L322 238 Z" transform="translate(-10 0)"/>
+        <text x="312" y="222" class="tag">HV-102</text>
+        <!-- vazamento -->
+        <path class="pipe" d="M150 238 H104 V272"/>
+        <path class="flow" id="fLeak" d="M150 238 H104 V272"/>
+        <path class="valve" id="vLeak" d="M112 228 L112 248 L127 238 Z M142 228 L142 248 L127 238 Z"/>
+        <text x="127" y="222" class="tag">HV-103</text>
+        <!-- instrumentação -->
+        <line x1="270" y1="122" x2="312" y2="122" stroke="var(--ink)" stroke-width="1.4"/>
+        <circle class="bubble" cx="330" cy="122" r="18"/>
+        <text x="330" y="119" class="tag">LT</text><text x="330" y="131" class="tag">101</text>
+        <path class="sig" d="M330 104 V70"/>
+        <circle class="bubble" cx="330" cy="52" r="18"/>
+        <line x1="312" y1="52" x2="348" y2="52" stroke="var(--ink)" stroke-width="1.2"/>
+        <text x="330" y="47" class="tag">LIC</text><text x="330" y="65" class="tag">101</text>
+        <path class="sig" d="M312 46 H104 V230 H86"/>
+      </svg>
+
+      <div class="face" aria-label="Faceplate do controlador LIC-101">
+        <div class="face-top">
+          <span class="face-tag">LIC-101</span>
+          <div class="modes" role="group" aria-label="Modo do controlador">
+            <button type="button" id="manBtn" aria-pressed="false">MAN</button>
+            <button type="button" id="autoBtn" aria-pressed="true">AUTO</button>
+          </div>
+        </div>
+        <dl class="rows">
+          <dt>SP</dt><dd class="spc"><span id="spVal">25,0</span><small>cm</small></dd>
+          <dt>PV</dt><dd class="pv"><span id="pvVal">0,0</span><small>cm</small></dd>
+          <dt>MV</dt><dd class="mvc"><span id="mvVal">0,0</span><small>%</small></dd>
+        </dl>
+        <div class="bar" aria-hidden="true"><i id="mvBar"></i></div>
+        <div class="terms" id="terms" aria-label="Contribuição de cada termo do PID"><span>P —</span><span>I —</span><span>D —</span></div>
+        <div class="ctl">
+          <label for="spRange">Setpoint (SP) <span id="spHint">0–50 cm</span></label>
+          <input type="range" id="spRange" min="0" max="50" step="0.5" value="25">
+          <input type="number" id="spNum" min="0" max="50" step="0.5" value="25" aria-label="Setpoint em cm">
+        </div>
+        <div class="sp-steps">
+          <button class="btn" type="button" data-step="-5">SP −5 cm</button>
+          <button class="btn" type="button" data-step="-1">−1</button>
+          <button class="btn" type="button" data-step="1">+1</button>
+          <button class="btn" type="button" data-step="5">SP +5 cm</button>
+        </div>
+        <div class="ctl">
+          <label for="manRange">Saída manual da bomba <span>só em MAN</span></label>
+          <input type="range" id="manRange" min="0" max="100" step="0.5" value="0" disabled>
+          <input type="number" id="manNum" min="0" max="100" step="0.5" value="0" disabled aria-label="Saída manual em %">
+        </div>
+        <p class="note" id="eqNote">MV de equilíbrio no SP atual ≈ —</p>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Tendência e desempenho">
+      <div class="panel-head">
+        <h2>Tendência</h2>
+        <div class="toolbar">
+          <label for="win" class="note">Janela</label>
+          <select id="win"><option value="120">2 min</option><option value="300" selected>5 min</option><option value="600">10 min</option></select>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--water)"></i>PV · nível medido (cm)</span>
+        <span><i style="background:var(--sp)"></i>SP (cm)</span>
+        <span><i style="background:var(--mv)"></i>MV · bomba (%, eixo direito)</span>
+      </div>
+      <div class="chartbox" id="chartbox"><canvas id="chart" aria-label="Gráfico de tendência do nível, setpoint e saída do controlador"></canvas></div>
+
+      <div class="panel-head"><h2>Desempenho</h2><span class="event" id="eventTxt">—</span></div>
+      <div class="metrics">
+        <div class="metric"><b id="m1lbl">Sobressinal</b><output id="m1">—</output><small id="m1s">pico além do SP</small></div>
+        <div class="metric"><b>Tempo de subida</b><output id="m2">—</output><small>10 % → 90 % do degrau</small></div>
+        <div class="metric"><b id="m3lbl">Acomodação</b><output id="m3">—</output><small id="m3s">faixa de ±2 %</small></div>
+        <div class="metric"><b>Erro atual</b><output id="m4">—</output><small>SP − PV, média de 20 s</small></div>
+        <div class="metric"><b>IAE</b><output id="m5">—</output><small>∫|e|dt desde o evento (cm·s)</small></div>
+      </div>
+      <p class="note">As métricas recomeçam a cada mudança de SP ou perturbação no modo AUTO e usam o nível real do tanque (sem o ruído do sensor). Tempos em segundos de processo.</p>
+    </section>
+  </main>
+
+  <div class="grid3">
+    <section class="panel" aria-label="Sintonia do PID">
+      <div class="panel-head"><h2>Sintonia PID</h2></div>
+      <div class="presets" aria-label="Sintonias prontas">
+        <button class="btn" type="button" data-preset="p">Só P</button>
+        <button class="btn" type="button" data-preset="pi">PI</button>
+        <button class="btn" type="button" data-preset="pid">PID</button>
+        <button class="btn" type="button" data-preset="osc">Integral excessivo</button>
+      </div>
+      <div class="ctl">
+        <label for="kpR">Kp · ganho proporcional <span>%/cm</span></label>
+        <input type="range" id="kpR" min="0" max="40" step="0.1">
+        <input type="number" id="kpN" min="0" step="0.1" aria-label="Kp">
+      </div>
+      <div class="ctl">
+        <label for="kiR">Ki · ganho integral <span>%/(cm·s)</span></label>
+        <input type="range" id="kiR" min="0" max="0.5" step="0.001">
+        <input type="number" id="kiN" min="0" step="0.001" aria-label="Ki">
+      </div>
+      <div class="ctl">
+        <label for="kdR">Kd · ganho derivativo <span>%·s/cm</span></label>
+        <input type="range" id="kdR" min="0" max="80" step="0.5">
+        <input type="number" id="kdN" min="0" step="0.5" aria-label="Kd">
+      </div>
+      <p class="eq">u(t) = Kp·e + Ki·∫e dt + Kd·de/dt &nbsp;·&nbsp; u ∈ [0, 100] % &nbsp;·&nbsp; Ts = 0,1 s</p>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="aw" checked><span>Anti-windup por integração condicional<small>Para de integrar quando a bomba satura em 0 % ou 100 %.</small></span></label>
+        <label class="check"><input type="checkbox" id="dpv" checked><span>Derivada sobre a medição<small>Evita o “chute” na MV quando o SP muda em degrau.</small></span></label>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Perturbações">
+      <div class="panel-head"><h2>Perturbações</h2></div>
+      <div class="ctl">
+        <label for="valveR">Abertura da válvula de saída HV-102 <span>%</span></label>
+        <input type="range" id="valveR" min="0" max="100" step="1" value="50">
+        <input type="number" id="valveN" min="0" max="100" step="1" value="50" aria-label="Abertura da válvula de saída">
+      </div>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="leak"><span>Abrir vazamento HV-103<small>Saída extra proporcional a √h.</small></span></label>
+        <label class="check"><input type="checkbox" id="extra"><span>Entrada extra de 20 cm³/s<small>Vazão que chega ao tanque sem passar pela bomba.</small></span></label>
+      </div>
+      <div class="ctl">
+        <label for="noiseR">Ruído do sensor LT-101 <span>desvio-padrão, cm</span></label>
+        <input type="range" id="noiseR" min="0" max="0.5" step="0.01" value="0.05">
+        <input type="number" id="noiseN" min="0" max="2" step="0.01" value="0.05" aria-label="Ruído do sensor">
+      </div>
+      <p class="eq">A·dh/dt = Q<sub>bomba</sub> + Q<sub>extra</sub> − k·v·√h − k<sub>vaz</sub>·√h</p>
+      <p class="note">O processo é não linear: a vazão de saída cresce com √h. Uma sintonia boa em 25 cm pode ficar lenta ou oscilar em outro nível.</p>
+    </section>
+  </div>
+
+  <details class="panel" id="paramsBox">
+    <summary>Parâmetros da planta</summary>
+    <p class="note">Valores de exemplo. Ajuste para as dimensões da planta do laboratório. As mudanças valem na hora; use Reiniciar para começar do zero.</p>
+    <div class="params">
+      <div class="param"><label for="pA">Área da seção A (cm²)</label><input type="number" id="pA" min="10" step="1"><small>Tanque de 14 cm de diâmetro ≈ 150 cm²</small></div>
+      <div class="param"><label for="pH">Altura útil (cm)</label><input type="number" id="pH" min="5" step="1"></div>
+      <div class="param"><label for="pQ">Vazão máx. da bomba (L/min)</label><input type="number" id="pQ" min="0.1" step="0.1"><small>Com MV = 100 %</small></div>
+      <div class="param"><label for="pK">Coef. da saída k (cm³/s por √cm)</label><input type="number" id="pK" min="0" step="0.5"><small>Q<sub>saída</sub> = k · abertura · √h</small></div>
+      <div class="param"><label for="pT">Constante de tempo da bomba (s)</label><input type="number" id="pT" min="0" step="0.1"></div>
+      <div class="param"><label for="pL">Coef. do vazamento (cm³/s por √cm)</label><input type="number" id="pL" min="0" step="0.5"></div>
+      <div class="param"><label for="pH0">Nível inicial (cm)</label><input type="number" id="pH0" min="0" step="0.5"></div>
+    </div>
+  </details>
+
+  <section class="panel" aria-label="Roteiro de atividades">
+    <h2>Roteiro de atividades</h2>
+    <ol class="tasks">
+      <li><strong>Equilíbrio em malha aberta.</strong> Passe para MAN com a válvula de saída em 50 % e encontre a saída da bomba que segura o nível em 25 cm. Compare com o valor de equilíbrio mostrado no faceplate.</li>
+      <li><strong>Controle só proporcional.</strong> Aplique “Só P”, volte para AUTO e faça um degrau de SP de 25 para 30 cm. Anote o erro em regime. O que muda ao dobrar o Kp?</li>
+      <li><strong>Ação integral.</strong> Aplique “PI” e repita o degrau. O erro em regime some? Compare o sobressinal e o tempo de acomodação com a atividade 2.</li>
+      <li><strong>Rejeição de perturbação.</strong> Com o PI, abra o vazamento HV-103. Registre o desvio máximo e o tempo de recuperação. Depois feche e compare.</li>
+      <li><strong>Windup.</strong> Desligue o anti-windup, abra a HV-102 em 100 % e coloque SP = 40 cm: a bomba satura e o nível não chega. Espere 2 min de processo e volte o SP para 20 cm. Repita com o anti-windup ligado e compare as respostas.</li>
+      <li><strong>Derivativa e ruído.</strong> Aplique “PID” e aumente o ruído do sensor para 0,3 cm. Observe a MV. Por que a ação derivativa amplifica o ruído?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const fmt = (v, d=1) => Number.isFinite(v) ? v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+  const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+
+  // ---- Parâmetros e estado ----
+  const P = { A:150, H:50, qmax:6, k:20, tauP:2, kLeak:8, h0:10 };
+  const qmaxCm = () => P.qmax*1000/60; // cm³/s
+  const TS = 0.1, DT = 0.02, HIST_DT = 0.5, HIST_MAX = 1400;
+  const tune = { Kp:5, Ki:0.0333, Kd:0, aw:true, dpv:true };
+  const PRESETS = { p:{Kp:5,Ki:0,Kd:0}, pi:{Kp:5,Ki:0.0333,Kd:0}, pid:{Kp:8,Ki:0.06,Kd:10}, osc:{Kp:2,Ki:0.2,Kd:0} };
+  let S, hist, M;
+
+  function init(){
+    S = { t:0, h:P.h0, qp:0, u:0, mode:'auto', sp:Number($('spNum').value)||25, uMan:0, I:0, pvPrev:null, ePrev:0, dF:0,
+          pv:P.h0, terms:{P:0,I:0,D:0}, ctrlAcc:0, histAcc:HIST_DT, valve:Number($('valveN').value), leak:$('leak').checked,
+          extra:$('extra').checked, noise:Number($('noiseN').value), qout:0, qleak:0, running:S?S.running:true };
+    hist = [];
+    startEvent('sp', `Degrau de SP ${fmt(P.h0)} → ${fmt(S.sp)} cm`);
+  }
+
+  // ---- Métricas ----
+  function startEvent(type, label){
+    if (S.mode !== 'auto') { M = { active:false, label:'Métricas disponíveis no modo AUTO' }; return; }
+    const size = Math.abs(S.sp - S.h);
+    if (type === 'sp' && size < 0.2) { M = { active:false, label:'Degrau muito pequeno para medir' }; return; }
+    M = { active:true, type, label, t0:S.t, y0:S.h, sp:S.sp, size, dir:Math.sign(S.sp - S.h)||1,
+          peak:0, t10:null, t90:null, lastOut:S.t, iae:0, maxDev:0 };
+  }
+  function updateMetrics(dt){
+    if (!M || !M.active) return;
+    const e = S.sp - S.h;
+    M.iae += Math.abs(e)*dt;
+    if (M.type === 'sp'){
+      const prog = M.dir*(S.h - M.y0);
+      if (M.t10 === null && prog >= 0.1*M.size) M.t10 = S.t;
+      if (M.t90 === null && prog >= 0.9*M.size) M.t90 = S.t;
+      M.peak = Math.max(M.peak, M.dir*(S.h - M.sp));
+      if (Math.abs(e) > Math.max(0.02*M.size, 0.1)) M.lastOut = S.t;
+    } else {
+      M.maxDev = Math.max(M.maxDev, Math.abs(e));
+      if (Math.abs(e) > 0.25) M.lastOut = S.t;
+    }
+  }
+
+  // ---- Simulação ----
+  function gauss(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+  function controller(){
+    const pv = clamp(S.h + gauss()*S.noise, 0, P.H*1.05);
+    const e = S.sp - pv;
+    if (S.pvPrev === null) S.pvPrev = pv;
+    if (S.mode === 'auto'){
+      const dRaw = tune.dpv ? -(pv - S.pvPrev)/TS : (e - S.ePrev)/TS;
+      S.dF += 0.3*(dRaw - S.dF);
+      const Pt = tune.Kp*e, D = tune.Kd*S.dF;
+      const Inew = S.I + tune.Ki*e*TS;
+      const uu = Pt + Inew + D;
+      if (tune.aw && ((uu > 100 && e > 0) || (uu < 0 && e < 0))) { /* integração condicional: mantém I */ }
+      else S.I = Inew;
+      S.u = clamp(Pt + S.I + D, 0, 100);
+      S.terms = { P:Pt, I:S.I, D };
+    } else {
+      S.u = S.uMan;
+      S.I = S.uMan - tune.Kp*e;   // rastreamento para transferência sem solavanco
+      S.dF = 0;
+      S.terms = { P:NaN, I:NaN, D:NaN };
+    }
+    S.pv = pv; S.pvPrev = pv; S.ePrev = e;
+  }
+
+  function step(dt){
+    const target = S.u/100*qmaxCm();
+    S.qp = P.tauP > 0.01 ? S.qp + dt/P.tauP*(target - S.qp) : target;
+    const sq = Math.sqrt(Math.max(S.h,0));
+    S.qout = P.k*(S.valve/100)*sq;
+    S.qleak = S.leak ? P.kLeak*sq : 0;
+    const qx = S.extra ? 20 : 0;
+    S.h += dt*(S.qp + qx - S.qout - S.qleak)/P.A;
+    S.overflow = S.h >= P.H && (S.qp + qx) > (S.qout + S.qleak);
+    S.h = clamp(S.h, 0, P.H);
+    S.t += dt;
+    S.ctrlAcc += dt;
+    while (S.ctrlAcc >= TS){ S.ctrlAcc -= TS; controller(); }
+    updateMetrics(dt);
+    S.histAcc += dt;
+    if (S.histAcc >= HIST_DT){ S.histAcc = 0; hist.push({t:S.t, sp:S.sp, pv:S.pv, u:S.u}); if (hist.length > HIST_MAX) hist.shift(); }
+  }
+
+  // ---- Gráfico ----
+  const canvas = $('chart'), ctx = canvas.getContext('2d');
+  let colors = {}, colorsAt = -1e9;
+  function readColors(){
+    const cs = getComputedStyle(document.documentElement);
+    ['--ink','--muted','--line','--water','--water-soft','--sp','--mv','--panel'].forEach(k => colors[k] = cs.getPropertyValue(k).trim());
+  }
+  function sizeCanvas(){
+    const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(r.width*dpr)); canvas.height = Math.max(1, Math.round(r.height*dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  new ResizeObserver(sizeCanvas).observe($('chartbox'));
+
+  function drawChart(){
+    const now = performance.now();
+    if (now - colorsAt > 1000){ readColors(); colorsAt = now; }
+    const W = canvas.getBoundingClientRect().width, Hc = canvas.getBoundingClientRect().height;
+    ctx.clearRect(0,0,W,Hc);
+    const L=46, R=44, T=10, B=28, pw=W-L-R, ph=Hc-T-B;
+    if (pw <= 10 || ph <= 10) return;
+    const win = Number($('win').value);
+    const tEnd = Math.max(S.t, win), tStart = tEnd - win;
+    const x = t => L + (t - tStart)/win*pw, yL = h => T + (1 - h/P.H)*ph, yR = u => T + (1 - u/100)*ph;
+
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.lineWidth = 1; ctx.strokeStyle = colors['--line']; ctx.fillStyle = colors['--muted'];
+    for (let i=0;i<=4;i++){
+      const y = T + i/4*ph;
+      ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(L+pw,y); ctx.stroke();
+      ctx.textAlign='right'; ctx.textBaseline='middle'; {const v=P.H*(1-i/4); ctx.fillText(fmt(v, Number.isInteger(v)?0:1), L-6, y);}
+      ctx.textAlign='left'; ctx.fillText(String(100 - i*25), L+pw+6, y);
+    }
+    const tick = win/6;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    for (let k=Math.ceil(tStart/tick)*tick; k<=tEnd+1e-6; k+=tick){
+      const xx = x(k); ctx.beginPath(); ctx.moveTo(xx,T); ctx.lineTo(xx,T+ph); ctx.stroke();
+      ctx.fillText(Math.round(k)+' s', xx, T+ph+7);
+    }
+    ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('cm', 4, T); ctx.textAlign='right'; ctx.fillText('%', W-4, T);
+
+    const pts = hist.filter(p => p.t >= tStart - HIST_DT);
+    if (pts.length < 2) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(L,T,pw,ph); ctx.clip();
+    // área sob PV
+    ctx.beginPath(); ctx.moveTo(x(pts[0].t), yL(0));
+    pts.forEach(p => ctx.lineTo(x(p.t), yL(p.pv)));
+    ctx.lineTo(x(pts[pts.length-1].t), yL(0)); ctx.closePath();
+    ctx.fillStyle = colors['--water-soft']; ctx.fill();
+    const line = (key, color, w, yf, dash, stepped) => {
+      ctx.beginPath(); ctx.setLineDash(dash||[]); ctx.strokeStyle = color; ctx.lineWidth = w;
+      pts.forEach((p,i) => {
+        if (!i) ctx.moveTo(x(p.t), yf(p[key]));
+        else { if (stepped) ctx.lineTo(x(p.t), yf(pts[i-1][key])); ctx.lineTo(x(p.t), yf(p[key])); }
+      });
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+    line('u', colors['--mv'], 1.3, yR);
+    line('sp', colors['--sp'], 1.8, yL, [6,4], true);
+    line('pv', colors['--water'], 2.2, yL);
+    ctx.restore();
+    const last = pts[pts.length-1];
+    ctx.beginPath(); ctx.arc(x(last.t), yL(last.pv), 4, 0, Math.PI*2); ctx.fillStyle = colors['--water']; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = colors['--panel']; ctx.stroke();
+  }
+
+  // ---- Planta (SVG) ----
+  const inner = { top:62, bot:248 };
+  const yTank = h => inner.bot - clamp(h/P.H,0,1)*(inner.bot - inner.top);
+  function drawPlant(){
+    const y = yTank(S.h);
+    $('water').setAttribute('y', y); $('water').setAttribute('height', Math.max(0, inner.bot - y));
+    const ys = yTank(S.sp);
+    $('spLine').setAttribute('y1', ys); $('spLine').setAttribute('y2', ys); $('spTag').setAttribute('y', ys+4);
+    const yh = yTank(0.9*P.H), yl = yTank(0.1*P.H);
+    ['lahLine'].forEach(i=>{$(i).setAttribute('y1',yh);$(i).setAttribute('y2',yh);}); $('lahTxt').setAttribute('y', yh+3);
+    ['lalLine'].forEach(i=>{$(i).setAttribute('y1',yl);$(i).setAttribute('y2',yl);}); $('lalTxt').setAttribute('y', yl+3);
+    $('levTxt').textContent = fmt(S.h) + ' cm';
+    $('levTxt').setAttribute('y', clamp(y - 10, 84, 238));
+    $('fIn').classList.toggle('on', S.qp > 1);
+    $('pump').classList.toggle('on', S.u > 0.5);
+    $('fOut').classList.toggle('on', S.qout > 1);
+    $('fLeak').classList.toggle('on', S.qleak > 0.5);
+    $('vOut').classList.toggle('open', S.valve > 0);
+    $('vLeak').classList.toggle('open', S.leak);
+  }
+
+  // ---- Painéis ----
+  function eqMV(){
+    const sq = Math.sqrt(Math.max(S.sp,0));
+    const need = P.k*(S.valve/100)*sq + (S.leak ? P.kLeak*sq : 0) - (S.extra ? 20 : 0);
+    return need/qmaxCm()*100;
+  }
+  function updatePanels(){
+    $('clock').textContent = 't = ' + Math.floor(S.t) + ' s';
+    $('spVal').textContent = fmt(S.sp); $('pvVal').textContent = fmt(S.pv); $('mvVal').textContent = fmt(S.u);
+    $('mvBar').style.width = S.u + '%';
+    const T = S.terms;
+    $('terms').innerHTML = S.mode === 'auto'
+      ? `<span>P ${fmt(T.P)} %</span><span>I ${fmt(T.I)} %</span><span>D ${fmt(T.D)} %</span>`
+      : `<span>Modo manual: PID em rastreamento</span>`;
+    if (S.mode === 'auto'){ $('manRange').value = S.u.toFixed(1); $('manNum').value = S.u.toFixed(1); }
+    const eq = eqMV();
+    $('eqNote').textContent = eq > 100 ? 'SP inatingível nessas condições: precisaria de mais de 100 % de bomba.'
+      : eq < 0 ? 'Mesmo com a bomba desligada o nível sobe nessas condições.'
+      : `MV de equilíbrio no SP atual ≈ ${fmt(eq)} %`;
+    // alarmes
+    const al = [];
+    if (S.overflow) al.push('<span class="pill alarm">TRANSBORDANDO</span>');
+    else if (S.h > 0.9*P.H) al.push('<span class="pill alarm">LAH · nível alto</span>');
+    if (S.h < 0.1*P.H) al.push('<span class="pill alarm">LAL · nível baixo</span>');
+    if (S.mode==='auto' && (S.u >= 99.95 || S.u <= 0.05)) al.push('<span class="pill alarm">MV saturada</span>');
+    if (!al.length) al.push('<span class="pill ok">Normal</span>');
+    const html = al.join(''); if ($('alarms').innerHTML !== html) $('alarms').innerHTML = html;
+
+    // métricas
+    const recent = hist.filter(p => p.t >= S.t - 20);
+    $('m4').textContent = recent.length ? fmt(recent.reduce((a,p)=>a+(p.sp-p.pv),0)/recent.length, 2) + ' cm' : '—';
+    if (!M || !M.active){
+      $('eventTxt').textContent = M ? M.label : '—';
+      ['m1','m2','m3','m5'].forEach(i => $(i).textContent = '—');
+      return;
+    }
+    $('eventTxt').innerHTML = `<strong>${M.label}</strong> em t = ${Math.round(M.t0)} s`;
+    const settled = (S.t - M.lastOut) >= 15;
+    if (M.type === 'sp'){
+      $('m1lbl').textContent = 'Sobressinal'; $('m1s').textContent = 'pico além do SP';
+      $('m1').textContent = fmt(Math.max(0, M.peak)/M.size*100) + ' %';
+      $('m2').textContent = (M.t10!==null && M.t90!==null) ? fmt(M.t90 - M.t10) + ' s' : 'subindo…'; $('m2').classList.toggle('wait', !(M.t10!==null && M.t90!==null));
+      $('m3lbl').textContent = 'Acomodação'; $('m3s').textContent = 'faixa de ±2 % do degrau';
+    } else {
+      $('m1lbl').textContent = 'Desvio máximo'; $('m1s').textContent = 'maior |SP − nível|';
+      $('m1').textContent = fmt(M.maxDev, 2) + ' cm';
+      $('m2').textContent = '—'; $('m2').classList.remove('wait');
+      $('m3lbl').textContent = 'Recuperação'; $('m3s').textContent = 'volta à faixa de ±0,25 cm';
+    }
+    $('m3').textContent = settled ? fmt(M.lastOut - M.t0) + ' s' : 'acomodando…'; $('m3').classList.toggle('wait', !settled);
+    $('m5').textContent = fmt(M.iae, 0);
+  }
+
+  // ---- Laço principal ----
+  let lastFrame = performance.now(), uiAcc = 0;
+  function frame(now){
+    const realDt = Math.min(0.1, (now - lastFrame)/1000); lastFrame = now;
+    if (S.running){
+      let simDt = realDt*Number($('speed').value);
+      while (simDt > 1e-9){ const d = Math.min(DT, simDt); step(d); simDt -= d; }
+    }
+    drawPlant(); drawChart();
+    uiAcc += realDt; if (uiAcc > 0.1){ uiAcc = 0; updatePanels(); }
+    requestAnimationFrame(frame);
+  }
+
+  // ---- Ligações de interface ----
+  function pair(rangeId, numId, onSet){
+    const r = $(rangeId), n = $(numId);
+    r.addEventListener('input', () => { n.value = r.value; onSet(Number(r.value)); });
+    n.addEventListener('change', () => { const v = Number(n.value); if (!Number.isFinite(v)) return; r.value = v; onSet(v); });
+  }
+  function setSP(v){
+    v = clamp(v, 0, P.H); const old = S.sp; S.sp = v;
+    $('spRange').value = v; $('spNum').value = v;
+    if (Math.abs(old - v) > 1e-9) startEvent('sp', `Degrau de SP ${fmt(old)} → ${fmt(v)} cm`);
+  }
+  pair('spRange','spNum', setSP);
+  document.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => setSP(S.sp + Number(b.dataset.step))));
+  pair('manRange','manNum', v => { S.uMan = clamp(v,0,100); });
+
+  function setMode(m){
+    if (m === S.mode) return;
+    if (m === 'manual'){ S.uMan = S.u; }
+    S.mode = m;
+    $('manBtn').setAttribute('aria-pressed', m==='manual'); $('autoBtn').setAttribute('aria-pressed', m==='auto');
+    ['manRange','manNum'].forEach(i => $(i).disabled = m !== 'manual');
+    if (m === 'manual'){ $('manRange').value = S.uMan.toFixed(1); $('manNum').value = S.uMan.toFixed(1); M = { active:false, label:'Métricas disponíveis no modo AUTO' }; }
+    else { S.pvPrev = S.pv; startEvent('sp', `Passagem para AUTO: ${fmt(S.h)} → ${fmt(S.sp)} cm`); }
+  }
+  $('manBtn').addEventListener('click', () => setMode('manual'));
+  $('autoBtn').addEventListener('click', () => setMode('auto'));
+
+  function syncTune(){
+    $('kpR').value = tune.Kp; $('kpN').value = tune.Kp;
+    $('kiR').value = tune.Ki; $('kiN').value = tune.Ki;
+    $('kdR').value = tune.Kd; $('kdN').value = tune.Kd;
+  }
+  pair('kpR','kpN', v => tune.Kp = Math.max(0,v));
+  pair('kiR','kiN', v => tune.Ki = Math.max(0,v));
+  pair('kdR','kdN', v => tune.Kd = Math.max(0,v));
+  $('aw').addEventListener('change', e => tune.aw = e.target.checked);
+  $('dpv').addEventListener('change', e => tune.dpv = e.target.checked);
+  document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => { Object.assign(tune, PRESETS[b.dataset.preset]); syncTune(); }));
+
+  const distLabel = { valve:v => `Válvula HV-102 → ${v} %`, leak:on => on ? 'Vazamento HV-103 aberto' : 'Vazamento HV-103 fechado', extra:on => on ? 'Entrada extra ligada' : 'Entrada extra desligada' };
+  pair('valveR','valveN', v => { S.valve = clamp(v,0,100); startEvent('dist', distLabel.valve(S.valve)); });
+  $('leak').addEventListener('change', e => { S.leak = e.target.checked; startEvent('dist', distLabel.leak(S.leak)); });
+  $('extra').addEventListener('change', e => { S.extra = e.target.checked; startEvent('dist', distLabel.extra(S.extra)); });
+  pair('noiseR','noiseN', v => S.noise = Math.max(0,v));
+
+  const paramMap = { pA:'A', pH:'H', pQ:'qmax', pK:'k', pT:'tauP', pL:'kLeak', pH0:'h0' };
+  Object.entries(paramMap).forEach(([id,key]) => {
+    $(id).value = P[key];
+    $(id).addEventListener('change', () => {
+      const v = Number($(id).value); if (!Number.isFinite(v) || v < 0) { $(id).value = P[key]; return; }
+      P[key] = key === 'A' || key === 'H' ? Math.max(v, 1) : v;
+      if (key === 'H'){
+        ['spRange','spNum'].forEach(i => $(i).max = P.H);
+        $('spHint').textContent = `0–${fmt(P.H,0)} cm`;
+        if (S.sp > P.H) setSP(P.H);
+      }
+    });
+  });
+
+  $('runBtn').addEventListener('click', () => { S.running = !S.running; $('runBtn').textContent = S.running ? 'Pausar' : 'Continuar'; lastFrame = performance.now(); });
+  $('resetBtn').addEventListener('click', () => {
+    const wasManual = S.mode === 'manual';
+    if (wasManual) setMode('auto');
+    init(); S.running = true; $('runBtn').textContent = 'Pausar';
+  });
+
+  syncTune();
+  init();
+  sizeCanvas();
+  requestAnimationFrame(t => { lastFrame = t; frame(t); });
+})();
+</script>
+
+</body></html>

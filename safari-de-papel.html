@@ -1,0 +1,402 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Safári de Papel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rammetto+One&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+/* Layout: palco 3D à esquerda (topo no celular), ficha de campo à direita; cada bioma tinge o palco com sua cor. */
+:root{
+  --paper:#f1f3ec; --card:#ffffff; --ink:#18302a; --muted:#56685f; --line:#d5dccf;
+  --accent:#2f7a4f; --accent-ink:#ffffff; --ok:#2f7a4f; --bad:#b4472f;
+  --stage-a:#e3ece0; --stage-b:#cfdccb;
+  --display:"Rammetto One", "Arial Black", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --b-banhado:#2e8b7a; --b-bambuzal:#6a9a1f; --b-costa:#4f7fa8; --b-abismo:#3b3f8f;
+  --b-recife:#1f78b4; --b-deserto:#c4772b; --b-bosque:#2c7d5b; --b-campo:#a8792a;
+  --biome:var(--b-banhado);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0f1916; --card:#16231f; --ink:#e4ede7; --muted:#9db0a6; --line:#2a3a34;
+  --accent:#6cc28f; --accent-ink:#0c1a14; --ok:#6cc28f; --bad:#ec8a72;
+  --stage-a:#15241f; --stage-b:#0d1714; color-scheme:dark;
+  --b-banhado:#4fb8a4; --b-bambuzal:#97c64a; --b-costa:#86b3dc; --b-abismo:#8f94ea;
+  --b-recife:#5bb0e6; --b-deserto:#e6a15e; --b-bosque:#5cba8f; --b-campo:#d8aa5a;
+}}
+:root[data-theme="dark"]{
+  --paper:#0f1916; --card:#16231f; --ink:#e4ede7; --muted:#9db0a6; --line:#2a3a34;
+  --accent:#6cc28f; --accent-ink:#0c1a14; --ok:#6cc28f; --bad:#ec8a72;
+  --stage-a:#15241f; --stage-b:#0d1714; color-scheme:dark;
+  --b-banhado:#4fb8a4; --b-bambuzal:#97c64a; --b-costa:#86b3dc; --b-abismo:#8f94ea;
+  --b-recife:#5bb0e6; --b-deserto:#e6a15e; --b-bosque:#5cba8f; --b-campo:#d8aa5a;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 40px;display:grid;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(1.7rem,5vw,2.6rem);line-height:1.05;margin:0;letter-spacing:.01em;text-wrap:balance}
+.lede{margin:4px 0 0;color:var(--muted);max-width:52ch}
+.passport{font-family:var(--mono);font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.stamps{display:flex;gap:4px}
+.stamps i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--line);display:block}
+.stamps i.on{background:var(--accent);border-color:var(--accent)}
+
+@media (min-width:821px){nav.picker{flex-wrap:wrap}}
+nav.picker{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin;margin-inline:-16px;padding-inline:16px}
+.chip{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);
+  border-radius:10px;padding:7px 12px 7px 12px;font:inherit;cursor:pointer;position:relative;min-width:7.5rem;text-align:left}
+.chip small{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--c)}
+.chip b{font-weight:700;font-size:.95rem}
+.chip[aria-pressed="true"]{border-color:var(--c);box-shadow:inset 0 0 0 1.5px var(--c)}
+.chip .done{position:absolute;top:6px;right:8px;font-size:.75rem;color:var(--c)}
+.chip:focus-visible,button:focus-visible,.opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:820px){main{grid-template-columns:minmax(0,1fr)}}
+
+.stage{position:relative;border-radius:16px;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 15%, color-mix(in srgb,var(--biome) 18%,var(--stage-a)) 0%, var(--stage-b) 75%);
+  border:1.5px solid color-mix(in srgb,var(--biome) 35%,var(--line));aspect-ratio:4/4.2;max-width:100%}
+@media (max-width:820px){.stage{aspect-ratio:4/4.4}}
+model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
+.stage-top{position:absolute;inset:12px 12px auto 12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.tag{pointer-events:auto;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;
+  background:color-mix(in srgb,var(--card) 85%,transparent);color:var(--ink);border:1px solid var(--line)}
+.tag.biome{color:var(--biome);border-color:color-mix(in srgb,var(--biome) 50%,var(--line))}
+.stage-bottom{position:absolute;inset:auto 12px 12px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.stage-bottom .btn{white-space:nowrap}
+@media (max-width:420px){.btn.ar{padding:11px 14px;font-size:.98rem}.btn.ghost{padding:9px 11px;font-size:.9rem}}
+.btn{font:inherit;font-weight:700;border-radius:12px;border:0;padding:12px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn.ar{background:var(--accent);color:var(--accent-ink);font-size:1.02rem;box-shadow:0 6px 18px -8px color-mix(in srgb,var(--accent) 80%,transparent)}
+.btn.ghost{background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--ink);border:1px solid var(--line);padding:10px 14px}
+.btn svg{width:20px;height:20px}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--mono);font-size:.8rem;pointer-events:none}
+
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:14px;min-width:0}
+.name{font-family:var(--display);font-weight:400;font-size:clamp(1.5rem,4vw,2rem);line-height:1.1;margin:0;text-wrap:balance}
+.sci{font-style:italic;color:var(--muted);margin:2px 0 0}
+dl.facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:0}
+dl.facts dt{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+dl.facts dd{margin:0}
+.iucn{display:inline-flex;align-items:center;gap:6px}
+.iucn b{font-family:var(--mono);font-size:.75rem;padding:1px 6px;border-radius:5px;background:var(--ink);color:var(--paper)}
+.iucn b.vu{background:#c9a227;color:#1c1606}
+.say{display:flex;gap:10px;align-items:flex-start;border-left:3px solid var(--biome);padding-left:12px}
+.say p{margin:0}
+.say .btn{flex:0 0 auto;padding:8px 12px;font-size:.9rem}
+.know h3,.quiz h3{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--biome);margin:0 0 4px;font-weight:500}
+.know p{margin:0}
+.quiz{border-top:1.5px dashed var(--line);padding-top:14px;display:grid;gap:8px}
+.quiz .q{margin:0;font-weight:700}
+.opt{font:inherit;text-align:left;background:transparent;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt:hover{border-color:var(--biome)}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.feedback{margin:0;font-size:.95rem}
+.feedback.right b{color:var(--ok)} .feedback.wrong b{color:var(--bad)}
+
+.help{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px 20px}
+.help h2{font-size:1rem;margin:0 0 6px}
+.help ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+footer{color:var(--muted);font-size:.85rem;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+footer a{color:inherit}
+
+/* Modo cartaz (#cartaz): para projetar na reunião */
+.poster{display:grid;place-items:center;gap:18px;text-align:center;padding-block:24px}
+.poster h1{font-size:clamp(2.2rem,7vw,4.2rem)}
+.qr{background:#fff;padding:18px;border-radius:18px;border:1.5px solid var(--line);width:min(78vw,340px);aspect-ratio:1/1;display:grid;place-items:center}
+.qr img,.qr canvas{width:100%!important;height:auto!important;image-rendering:pixelated}
+.poster ol{text-align:left;margin:0;padding-left:1.3em;display:grid;gap:6px;max-width:34rem;font-size:1.1rem}
+.poster .url{font-family:var(--mono);font-size:.9rem;color:var(--muted);word-break:break-all}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1>Safári de Papel</h1>
+      <p class="lede">Os animais da mostra de biomas, em realidade aumentada. Escolha um animal, toque em <b>Ver no meu espaço</b> e coloque-o em tamanho real sobre a mesa ou o chão.</p>
+    </div>
+    <div class="passport" title="Desafios respondidos corretamente">
+      <span id="passCount">Passaporte 0/8</span><span class="stamps" id="stamps"></span>
+    </div>
+  </header>
+
+  <nav class="picker" id="picker" aria-label="Escolha o animal"></nav>
+
+  <main>
+    <section class="stage" id="stage" aria-label="Modelo 3D">
+      <model-viewer id="mv" ar ar-modes="webxr scene-viewer quick-look" camera-controls touch-action="pan-y"
+        shadow-intensity="1" shadow-softness="0.8" exposure="1.05" environment-image="neutral"
+        auto-rotate auto-rotate-delay="2500" rotation-per-second="18deg" interaction-prompt="none"
+        alt="Modelo 3D do animal selecionado"></model-viewer>
+      <div class="loading" id="loading">carregando modelo…</div>
+      <div class="stage-top">
+        <span class="tag biome" id="tagBiome"></span>
+        <span class="tag" id="tagSize"></span>
+      </div>
+      <div class="stage-bottom">
+        <button class="btn ar" id="arBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
+          Ver no meu espaço
+        </button>
+        <button class="btn ghost" id="resetBtn" type="button">Centralizar</button>
+      </div>
+    </section>
+
+    <article class="card" id="card" aria-live="polite">
+      <div>
+        <h2 class="name" id="nome"></h2>
+        <p class="sci" id="cient"></p>
+      </div>
+      <dl class="facts">
+        <dt>Onde vive</dt><dd id="onde"></dd>
+        <dt>Tamanho</dt><dd id="tam"></dd>
+        <dt>Situação</dt><dd id="status"></dd>
+      </dl>
+      <div class="say">
+        <button class="btn ghost" id="speakBtn" type="button" aria-label="Ouvir o animal se apresentar">▶ Ouvir</button>
+        <p id="fala"></p>
+      </div>
+      <div class="know"><h3>Você sabia?</h3><p id="curio"></p></div>
+      <div class="quiz" id="quiz">
+        <h3>Desafio do passaporte</h3>
+        <p class="q" id="pergunta"></p>
+        <div id="opcoes" style="display:grid;gap:8px"></div>
+        <p class="feedback" id="feedback" hidden></p>
+      </div>
+    </article>
+  </main>
+
+  <section class="help" id="help" hidden>
+    <h2>A realidade aumentada não abriu neste aparelho</h2>
+    <ul>
+      <li id="frameNote" hidden><b>Esta é a prévia aberta dentro do Claude.</b> Por segurança, o Claude bloqueia a câmera e a realidade aumentada nas prévias. Para ver o animal no espaço, abra o endereço do site publicado (GitHub Pages, Cloudflare Pages ou o servidor do campus).</li>
+      <li><b>Android:</b> abra o site no Chrome. O aparelho precisa ter o app "Google Play Services para RA" (ARCore).</li>
+      <li><b>iPhone e iPad:</b> abra o site no Safari (iOS 12 ou mais recente).</li>
+      <li><b>Computador ou aparelho sem RA:</b> gire o modelo com o dedo ou o mouse e use a ficha ao lado. Projetado, funciona bem para a turma toda.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Modelos low-poly feitos para a mostra de biomas do IFSul. Tamanhos aproximados de adultos.</span>
+    <a href="#cartaz">Cartaz com QR code para projetar</a>
+  </footer>
+</div>
+
+<div class="wrap poster" id="poster" hidden>
+  <h1>Safári de Papel</h1>
+  <div class="qr" id="qr" aria-label="QR code do site"></div>
+  <ol>
+    <li>Aponte a câmera do celular para o código.</li>
+    <li>Escolha um animal e toque em <b>Ver no meu espaço</b>.</li>
+    <li>Mire na mesa ou no chão e veja o animal em tamanho real.</li>
+  </ol>
+  <p class="url" id="posterUrl"></p>
+  <a class="btn ghost" href="#">Voltar aos animais</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const MODEL_EXT = "json";
+const ANIMAIS = [
+  { id:"capivara", nome:"Capivara", cient:"Hydrochoerus hydrochaeris", bioma:"Banhado", cor:"banhado",
+    onde:"Rios, lagoas e banhados da América do Sul, incluindo o Pampa gaúcho e o Pantanal.",
+    tam:"1,0 a 1,3 m de comprimento · 35 a 65 kg", modelo:"1,15 m de comprimento", iucn:["LC","Pouco preocupante"],
+    fala:"Eu sou a capivara, o maior roedor do mundo. Vivo perto da água, aqui mesmo no Rio Grande do Sul. Tenho membranas entre os dedos e sou ótima nadadora.",
+    curio:"Os olhos, as orelhas e as narinas ficam no alto da cabeça. Assim a capivara respira e vigia o ambiente com quase todo o corpo submerso, como um hipopótamo em miniatura.",
+    q:"Por que a capivara quase nunca se afasta da água?",
+    ops:["A água é refúgio contra predadores e ajuda a regular a temperatura do corpo.","Ela se alimenta principalmente de peixes.","Ela não consegue caminhar em terra firme."], certa:0,
+    exp:"Ela é herbívora e anda bem em terra, mas mergulha para fugir de predadores e se refrescar." },
+  { id:"panda", nome:"Panda-gigante", cient:"Ailuropoda melanoleuca", bioma:"Bambuzal", cor:"bambuzal",
+    onde:"Florestas de bambu nas montanhas do centro da China.",
+    tam:"1,2 a 1,9 m de comprimento · 70 a 125 kg", modelo:"1,15 m sentado", iucn:["VU","Vulnerável"],
+    fala:"Eu sou o panda-gigante. Passo boa parte do dia comendo bambu, que tem pouca energia. Por isso me movimento devagar e descanso bastante.",
+    curio:"O panda tem um “falso polegar”: um osso do pulso alongado que funciona como um sexto dedo para segurar o bambu.",
+    q:"O panda pertence à ordem Carnivora, mas come quase só bambu. O que isso mostra?",
+    ops:["A classificação reflete o parentesco evolutivo, e não apenas a dieta atual.","O panda foi classificado errado pelos cientistas.","Todo animal da ordem Carnivora come carne."], certa:0,
+    exp:"Os pandas descendem de ancestrais carnívoros. A dieta mudou ao longo da evolução, mas o parentesco continua o mesmo." },
+  { id:"pinguim", nome:"Pinguim-de-magalhães", cient:"Spheniscus magellanicus", bioma:"Costa fria", cor:"costa",
+    onde:"Costas da Argentina e do Chile. No inverno, muitos nadam para o norte e chegam ao litoral do Rio Grande do Sul.",
+    tam:"61 a 76 cm de altura · 2,7 a 6,5 kg", modelo:"70 cm de altura", iucn:["LC","Pouco preocupante, mas em declínio"],
+    fala:"Eu sou o pinguim-de-magalhães. No inverno, viajo milhares de quilômetros atrás de alimento e às vezes apareço nas praias gaúchas.",
+    curio:"Todos os pinguins selvagens vivem no Hemisfério Sul. Nenhum deles jamais viu um iglu ou um urso-polar, que são do Ártico.",
+    q:"Um pinguim e um urso-polar se encontram na natureza. Isso pode acontecer?",
+    ops:["Não. Pinguins vivem no Hemisfério Sul e ursos-polares, no Ártico.","Sim, os dois vivem na Antártida.","Sim, no Polo Norte, durante o inverno."], certa:0,
+    exp:"Os dois só se encontram em zoológicos ou desenhos animados. Os polos têm faunas bem diferentes." },
+  { id:"peixe-diabo", nome:"Peixe-diabo-negro", cient:"Melanocetus johnsonii", bioma:"Mar profundo", cor:"abismo",
+    onde:"Oceanos do mundo todo, geralmente entre 200 e 1.500 m de profundidade, onde a luz do sol não chega.",
+    tam:"Fêmea até cerca de 15 cm · macho de 1,5 a 3 cm", modelo:"15 cm (fêmea). Na RA, use dois dedos para ampliar.", iucn:["LC","Pouco preocupante"],
+    fala:"Eu sou a fêmea do peixe-diabo-negro. Vivo na escuridão total e carrego uma luz na cabeça para atrair minha comida.",
+    curio:"A luz não é produzida pelo peixe: quem brilha são bactérias que vivem dentro da isca. É uma simbiose em que os dois lados saem ganhando.",
+    q:"Para que serve a luz na cabeça da fêmea?",
+    ops:["Atrair presas na escuridão do fundo do mar.","Iluminar o caminho enquanto nada.","Aquecer o corpo em águas geladas."], certa:0,
+    exp:"Pequenos animais se aproximam da luz e acabam dentro da boca enorme, cheia de dentes voltados para dentro." },
+  { id:"baiacu", nome:"Baiacu-de-espinho", cient:"Família Diodontidae", bioma:"Recife e costa", cor:"recife",
+    onde:"Recifes e águas costeiras tropicais, incluindo o litoral brasileiro.",
+    tam:"Cerca de 30 cm, conforme a espécie", modelo:"30 cm inflado", iucn:["LC","Pouco preocupante (espécies comuns)"],
+    fala:"Eu sou o baiacu-de-espinho. Quando me sinto ameaçado, engulo água, fico redondo e meus espinhos se levantam.",
+    curio:"Muitos baiacus acumulam tetrodotoxina, um veneno potente. Por isso nenhum baiacu deve ser consumido sem preparo especializado.",
+    q:"Como o baiacu fica redondo de repente?",
+    ops:["Engole muita água rapidamente e estica o corpo.","Infla os pulmões com ar.","Muda o formato dos ossos."], certa:0,
+    exp:"Peixes não têm pulmões. O baiacu enche o estômago, que é muito elástico, de água."},
+  { id:"dragao", nome:"Dragão-barbudo", cient:"Pogona vitticeps", bioma:"Deserto", cor:"deserto",
+    onde:"Regiões áridas e semiáridas do interior da Austrália.",
+    tam:"40 a 60 cm, contando a cauda", modelo:"50 cm de comprimento", iucn:["LC","Pouco preocupante"],
+    fala:"Eu sou o dragão-barbudo. Quando quero assustar alguém, escureço e estufo a pele espinhosa embaixo do queixo.",
+    curio:"A “barba” é uma bolsa de pele com escamas pontudas. Ela escurece e infla para afastar predadores e durante a disputa por parceiros.",
+    q:"Por que o dragão-barbudo passa as manhãs parado ao sol?",
+    ops:["É ectotérmico e usa o calor do ambiente para aquecer o corpo.","Está se camuflando contra a areia.","Precisa da luz para fazer fotossíntese."], certa:0,
+    exp:"Répteis dependem do calor externo para ativar o metabolismo. Depois de aquecido, ele caça com mais agilidade." },
+  { id:"pavao", nome:"Pavão-indiano", cient:"Pavo cristatus", bioma:"Bosque e campo", cor:"bosque",
+    onde:"Bosques e campos da Índia e do Sri Lanka. Foi levado para parques e fazendas do mundo todo.",
+    tam:"Macho com 1,0 a 1,2 m · até cerca de 2,2 m com a cauda de exibição", modelo:"1,4 m de altura, leque aberto", iucn:["LC","Pouco preocupante"],
+    fala:"Eu sou o pavão-indiano. Abro meu leque de penas para chamar a atenção das fêmeas.",
+    curio:"O leque não é a cauda verdadeira. São penas de cobertura que crescem sobre a cauda, cada uma com uma mancha em forma de olho, o ocelo.",
+    q:"Um leque enorme dificulta a fuga de predadores. Por que ele se manteve ao longo da evolução?",
+    ops:["As fêmeas escolhem machos com leques mais vistosos: é a seleção sexual.","O leque serve para o macho voar mais longe.","Com o leque, o pavão parece maior e nenhum predador o ataca."], certa:0,
+    exp:"Machos com leques chamativos deixam mais descendentes, mesmo correndo mais riscos. Darwin chamou isso de seleção sexual." },
+  { id:"coruja", nome:"Coruja-buraqueira", cient:"Athene cunicularia", bioma:"Campo aberto", cor:"campo",
+    onde:"Campos abertos do Pampa, do Cerrado e de muitas cidades brasileiras, inclusive em terrenos e gramados de escolas.",
+    tam:"Cerca de 25 cm de altura", modelo:"26 cm de altura", iucn:["LC","Pouco preocupante"],
+    fala:"Eu sou a coruja-buraqueira. Faço minha casa em buracos no chão e fico de vigia na entrada, até durante o dia.",
+    curio:"Ao contrário da maioria das corujas, ela é ativa também de dia. Usa tocas que cava sozinha ou que outros animais, como o tatu, abandonaram.",
+    q:"Que vantagem as pernas compridas dão à coruja-buraqueira?",
+    ops:["Enxergar por cima do capim e correr atrás de insetos no chão.","Nadar em rios e banhados.","Subir em árvores altas para dormir."], certa:0,
+    exp:"Em campo aberto, ficar mais alta ajuda a vigiar, e as pernas longas permitem caçar caminhando pelo chão." },
+];
+
+const $ = id => document.getElementById(id);
+const mv = $("mv");
+let atual = null;
+let acertos = {};
+try { acertos = JSON.parse(localStorage.getItem("safari-acertos") || "{}"); } catch (e) { acertos = {}; }
+function salvar(){ try { localStorage.setItem("safari-acertos", JSON.stringify(acertos)); } catch (e) {} }
+
+// ordem fixa das alternativas por animal, embaralhada uma vez
+function embaralha(a, seed){ const r=[...a.keys()]; let s=seed; for(let i=r.length-1;i>0;i--){ s=(s*9301+49297)%233280; const j=Math.floor(s/233280*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
+
+function montaPicker(){
+  const nav = $("picker");
+  ANIMAIS.forEach(a=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.type="button"; b.id="chip-"+a.id; b.dataset.id=a.id;
+    b.style.setProperty("--c", `var(--b-${a.cor})`);
+    b.innerHTML=`<small></small><b></b><span class="done" aria-hidden="true"></span>`;
+    b.querySelector("small").textContent=a.bioma; b.querySelector("b").textContent=a.nome;
+    b.addEventListener("click",()=>{ escolher(a.id); history.replaceState(null,"","#"+a.id); });
+    nav.appendChild(b);
+  });
+}
+
+function atualizaPassaporte(){
+  const n = ANIMAIS.filter(a=>acertos[a.id]).length;
+  $("passCount").textContent = `Passaporte ${n}/${ANIMAIS.length}`;
+  $("stamps").innerHTML = ANIMAIS.map(a=>`<i class="${acertos[a.id]?"on":""}"></i>`).join("");
+  ANIMAIS.forEach(a=>{ const d=document.querySelector(`#chip-${a.id} .done`); if(d) d.textContent = acertos[a.id] ? "✓" : ""; });
+}
+
+function escolher(id){
+  const a = ANIMAIS.find(x=>x.id===id) || ANIMAIS[0];
+  atual = a;
+  document.documentElement.style.setProperty("--biome", `var(--b-${a.cor})`);
+  document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", String(c.dataset.id===a.id)));
+  const chip=$("chip-"+a.id); if(chip) chip.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});
+  $("loading").hidden=false; tentouBlob=false;
+  mv.src = `modelos/${a.id}.${MODEL_EXT}`;
+  mv.alt = `Modelo 3D low-poly: ${a.nome}`;
+  $("tagBiome").textContent=a.bioma; $("tagSize").textContent=a.modelo.split(".")[0];
+  $("nome").textContent=a.nome; $("cient").textContent=a.cient;
+  $("onde").textContent=a.onde; $("tam").textContent=a.tam;
+  $("status").innerHTML=`<span class="iucn"><b class="${a.iucn[0].toLowerCase()}">${a.iucn[0]}</b><span></span></span>`;
+  $("status").querySelector(".iucn span").textContent=a.iucn[1]+" (Lista Vermelha da IUCN)";
+  $("fala").textContent="“"+a.fala+"”"; $("curio").textContent=a.curio;
+  $("pergunta").textContent=a.q;
+  const box=$("opcoes"); box.innerHTML="";
+  const ordem = embaralha(a.ops, a.id.length*7+a.nome.length);
+  ordem.forEach(i=>{
+    const o=document.createElement("button"); o.type="button"; o.className="opt"; o.textContent=a.ops[i];
+    o.addEventListener("click",()=>responder(a,i,o)); box.appendChild(o);
+  });
+  const fb=$("feedback"); fb.hidden=true; fb.className="feedback";
+  if(window.speechSynthesis) speechSynthesis.cancel();
+}
+
+function responder(a,i,el){
+  const fb=$("feedback");
+  document.querySelectorAll(".opt").forEach(o=>o.classList.remove("right","wrong"));
+  if(i===a.certa){
+    el.classList.add("right"); fb.className="feedback right";
+    fb.innerHTML="<b>Carimbo ganho!</b> "; fb.append(a.exp);
+    acertos[a.id]=true; salvar(); atualizaPassaporte();
+  } else {
+    el.classList.add("wrong"); fb.className="feedback wrong";
+    fb.innerHTML="<b>Ainda não.</b> Releia a ficha e tente outra alternativa.";
+  }
+  fb.hidden=false;
+}
+
+function falar(){
+  if(!("speechSynthesis" in window) || !atual) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(atual.fala);
+  u.lang="pt-BR"; u.rate=1;
+  const v=speechSynthesis.getVoices().find(v=>/pt[-_]BR/i.test(v.lang)) || speechSynthesis.getVoices().find(v=>/^pt/i.test(v.lang));
+  if(v) u.voice=v;
+  speechSynthesis.speak(u);
+}
+
+mv.addEventListener("load",()=>{ $("loading").hidden=true; });
+let tentouBlob = false;
+async function carregaComoBlob(id){
+  // plano B: lê o glTF, remonta um GLB na memória e entrega ao visualizador
+  const g = await (await fetch(`modelos/${id}.${MODEL_EXT}`)).json();
+  const uri = g.buffers[0].uri; delete g.buffers[0].uri;
+  const bin = Uint8Array.from(atob(uri.split(",")[1]), c=>c.charCodeAt(0));
+  let js = new TextEncoder().encode(JSON.stringify(g)); const pad=(4-js.length%4)%4;
+  const jsP = new Uint8Array(js.length+pad); jsP.set(js); jsP.fill(32, js.length);
+  const total = 12+8+jsP.length+8+bin.length; const buf=new ArrayBuffer(total); const dv=new DataView(buf);
+  dv.setUint32(0,0x46546C67,true); dv.setUint32(4,2,true); dv.setUint32(8,total,true);
+  dv.setUint32(12,jsP.length,true); dv.setUint32(16,0x4E4F534A,true); new Uint8Array(buf,20).set(jsP);
+  dv.setUint32(20+jsP.length,bin.length,true); dv.setUint32(24+jsP.length,0x004E4942,true); new Uint8Array(buf,28+jsP.length).set(bin);
+  return URL.createObjectURL(new Blob([buf],{type:"model/gltf-binary"}));
+}
+mv.addEventListener("error", async ()=>{
+  if (MODEL_EXT !== "glb" && !tentouBlob && atual) {
+    tentouBlob = true;
+    try { mv.src = await carregaComoBlob(atual.id); return; } catch(e) {}
+  }
+  $("loading").textContent="não foi possível carregar o modelo";
+});
+mv.addEventListener("ar-status",e=>{ if(e.detail.status==="failed") $("help").hidden=false; });
+
+$("arBtn").addEventListener("click", async ()=>{
+  let emMoldura = true; try { emMoldura = window.top !== window.self; } catch(e){}
+  if(emMoldura){ $("frameNote").hidden=false; $("help").hidden=false; $("help").scrollIntoView({behavior:"smooth",block:"center"}); return; }
+  try { await customElements.whenDefined("model-viewer"); } catch(e){}
+  if(mv.canActivateAR){ mv.activateAR(); }
+  else { $("help").hidden=false; $("help").scrollIntoView({behavior:"smooth",block:"center"}); }
+});
+$("resetBtn").addEventListener("click",()=>{ mv.cameraOrbit="auto auto auto"; mv.fieldOfView="auto"; mv.resetTurntableRotation?.(); mv.jumpCameraToGoal?.(); });
+$("speakBtn").addEventListener("click",falar);
+
+function siteUrl(){ return location.href.split("#")[0]; }
+function rota(){
+  const h=location.hash.replace("#","");
+  const cartaz = h==="cartaz";
+  $("app").hidden=cartaz; $("poster").hidden=!cartaz;
+  if(cartaz){
+    const box=$("qr"); box.innerHTML="";
+    const url=siteUrl(); $("posterUrl").textContent=url;
+    if(window.QRCode) new QRCode(box,{text:url,width:512,height:512,colorDark:"#18302a",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+    else box.textContent=url;
+    return;
+  }
+  if(ANIMAIS.some(a=>a.id===h)) escolher(h); else if(!atual) escolher(ANIMAIS[0].id);
+}
+
+montaPicker(); atualizaPassaporte(); rota();
+window.addEventListener("hashchange",rota);
+</script>
+
+</body></html>

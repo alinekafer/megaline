@@ -1,0 +1,1273 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Desafio de Nível LIC-101</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: HMI de laboratório com abas — Laboratório (planta, tendência, controlador, rodada oficial), Missões, Questionário, Ranking, Entrega */
+:root{
+  --bg:#EEF2F3; --panel:#FFFFFF; --panel2:#F5F7F8; --ink:#1B2A33; --muted:#5A6B75; --line:#D3DCE0;
+  --water:#1F7FBF; --water-soft:rgba(31,127,191,.16); --sp:#B9770E; --mv:#6A56A8; --accent:#0E6B78; --accent-ink:#FFFFFF;
+  --ok:#2E7D4F; --ok-soft:rgba(46,125,79,.12); --alarm:#C2412F; --alarm-soft:rgba(194,65,47,.1); --steel:#8A9AA3;
+  --gold:#B08A12; --silver:#7C8A93; --bronze:#A0602E;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F161A; --panel:#162027; --panel2:#1B2730; --ink:#E2E9ED; --muted:#93A3AC; --line:#2A3842;
+  --water:#4BA6DF; --water-soft:rgba(75,166,223,.18); --sp:#E2A33B; --mv:#A693DA; --accent:#3BB0BF; --accent-ink:#06191C;
+  --ok:#5BB982; --ok-soft:rgba(91,185,130,.14); --alarm:#EE6F5C; --alarm-soft:rgba(238,111,92,.14); --steel:#5F717B;
+  --gold:#E0B93E; --silver:#A9B6BE; --bronze:#D08B54; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F161A; --panel:#162027; --panel2:#1B2730; --ink:#E2E9ED; --muted:#93A3AC; --line:#2A3842;
+  --water:#4BA6DF; --water-soft:rgba(75,166,223,.18); --sp:#E2A33B; --mv:#A693DA; --accent:#3BB0BF; --accent-ink:#06191C;
+  --ok:#5BB982; --ok-soft:rgba(91,185,130,.14); --alarm:#EE6F5C; --alarm-soft:rgba(238,111,92,.14); --steel:#5F717B;
+  --gold:#E0B93E; --silver:#A9B6BE; --bronze:#D08B54; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1260px;margin:0 auto;padding-block:20px 56px;padding-inline:16px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(26px,3.4vw,36px);font-weight:700}
+h2{font-size:16px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+h3{font-size:18px;font-weight:600}
+p{margin:0}
+.lede{color:var(--muted);max-width:72ch;margin-top:4px}
+.eyebrow{font-family:var(--f-display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.note{font-size:13px;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,select,input,textarea{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 14px;border-radius:var(--r);cursor:pointer;font-family:var(--f-display);font-weight:600;letter-spacing:.04em}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--alarm);border-color:var(--alarm)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 10px;font-size:13px}
+:is(.btn,select,input,textarea,summary,[role=tab]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select,input[type=text],input[type=number],textarea{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:6px 8px}
+input[type=number]{font-family:var(--f-mono);text-align:right}
+input:disabled,select:disabled{opacity:.5}
+textarea{width:100%;min-height:96px;resize:vertical}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+header.top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between}
+.player{display:flex;flex-direction:column;gap:6px;min-width:260px;flex:0 1 340px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.player-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lvl{font-family:var(--f-display);font-weight:700;font-size:18px}
+.xp{font-family:var(--f-mono);font-weight:600;font-size:20px}
+.xpbar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.xpbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--water));transition:width .6s}
+@media (prefers-reduced-motion:reduce){.xpbar>i{transition:none}}
+.badges{display:flex;flex-wrap:wrap;gap:4px}
+.badge{font-family:var(--f-display);font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.badge.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.badge.gold{border-color:var(--gold);color:var(--gold)} .badge.silver{border-color:var(--silver);color:var(--silver)} .badge.bronze{border-color:var(--bronze);color:var(--bronze)}
+
+.ident{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.ident label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:13.5px;min-width:0}
+.ident input{width:100%}
+@media (max-width:760px){.ident{grid-template-columns:minmax(0,1fr)}}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.tabs [role=tab]{border:1px solid transparent;border-bottom:0;background:none;padding:9px 16px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px;letter-spacing:.03em;color:var(--muted);border-radius:var(--r) var(--r) 0 0;margin-bottom:-1px}
+.tabs [role=tab][aria-selected=true]{background:var(--panel);border-color:var(--line);color:var(--ink)}
+.tabs .count{font-family:var(--f-mono);font-size:12px;margin-left:6px;color:var(--accent)}
+
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1050px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.grid,.grid3{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:16px}
+
+/* Planta */
+.plant svg{width:100%;height:auto;display:block}
+.pipe{fill:none;stroke:var(--steel);stroke-width:7;stroke-linejoin:round}
+.flow{fill:none;stroke:var(--water);stroke-width:3;stroke-dasharray:7 7;opacity:0}
+.flow.on{opacity:1;animation:dash .8s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-14}}
+@media (prefers-reduced-motion:reduce){.flow.on{animation:none}}
+.sig{fill:none;stroke:var(--muted);stroke-width:1.4;stroke-dasharray:5 4}
+.bubble{fill:var(--panel);stroke:var(--ink);stroke-width:1.5}
+.tag{font-family:var(--f-mono);font-size:10px;fill:var(--ink);text-anchor:middle}
+.lbl{font-family:var(--f-display);font-size:12px;fill:var(--muted);letter-spacing:.05em}
+.tankwall{fill:var(--panel2);stroke:var(--ink);stroke-width:2}
+.watr{fill:var(--water);opacity:.85}
+.spline{stroke:var(--sp);stroke-width:2;stroke-dasharray:6 4}
+.valve{fill:var(--panel);stroke:var(--ink);stroke-width:1.5}
+.valve.open{fill:var(--water)}
+.pump{fill:var(--panel);stroke:var(--ink);stroke-width:1.8}
+.pump.on{fill:var(--water-soft)}
+.vfd{fill:var(--panel2);stroke:var(--ink);stroke-width:1.4}
+.vfdtxt{font-family:var(--f-mono);font-size:11px;fill:var(--mv);text-anchor:middle;font-weight:600}
+.levtxt{font-family:var(--f-mono);font-size:20px;font-weight:600;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--panel2);stroke-width:4px}
+
+.face{border:1px solid var(--line);border-radius:var(--r);background:var(--panel2);padding:12px;display:flex;flex-direction:column;gap:10px}
+.face-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.face-tag{font-family:var(--f-mono);font-weight:600;font-size:14px}
+.modes{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.modes button{border:0;background:var(--panel);padding:6px 14px;cursor:pointer;font-family:var(--f-display);font-weight:700;letter-spacing:.08em}
+.modes button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.modes button:disabled{cursor:not-allowed;opacity:.6}
+.rows{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:baseline;margin:0}
+.rows dt{font-family:var(--f-display);font-weight:600;letter-spacing:.06em;font-size:13px;color:var(--muted)}
+.rows dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:21px;font-weight:600;text-align:right}
+.rows dd small{font-size:12px;color:var(--muted);font-weight:400;margin-left:3px}
+.rows .raw{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);text-align:right;min-width:9ch}
+.pv{color:var(--water)} .spc{color:var(--sp)} .mvc{color:var(--mv)}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;position:relative}
+.bar>i{display:block;height:100%;background:var(--mv);width:0}
+.bar>b{position:absolute;top:0;bottom:0;width:2px;background:var(--alarm);left:75%}
+.terms{display:flex;gap:6px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.terms span{border:1px solid var(--line);border-radius:4px;padding:2px 6px;background:var(--panel)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;min-height:24px}
+.pill{font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.08em;padding:3px 8px;border-radius:999px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.alarm{color:var(--alarm);background:var(--alarm-soft)}
+
+.ctl{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:4px 10px;align-items:center}
+.ctl > label{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
+.ctl > label span{font-weight:400;color:var(--muted);font-size:12px;font-family:var(--f-mono)}
+.ctl input[type=number]{width:100%}
+.inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.check input{margin-top:3px;accent-color:var(--accent)}
+.check small{display:block;color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;overflow-x:auto;white-space:nowrap}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+.chartbox{position:relative;width:100%;height:320px}
+@media (max-width:600px){.chartbox{height:240px}}
+canvas{width:100%;height:100%;display:block}
+
+/* Rodada oficial */
+.official{border:1px solid var(--accent);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:color-mix(in srgb,var(--accent) 5%,var(--panel))}
+.phases{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.phase{border:1px solid var(--line);border-radius:4px;padding:6px 8px;font-size:12.5px;background:var(--panel)}
+.phase b{display:block;font-family:var(--f-display);font-size:13px}
+.phase.now{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.prog>i{display:block;height:100%;width:0;background:var(--accent)}
+.result{display:flex;flex-direction:column;gap:10px}
+.score{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.score .big{font-family:var(--f-mono);font-size:40px;font-weight:600;line-height:1}
+.medal{font-family:var(--f-display);font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px;border:1.5px solid currentColor}
+.medal.gold{color:var(--gold)} .medal.silver{color:var(--silver)} .medal.bronze{color:var(--bronze)} .medal.none{color:var(--muted)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:600;letter-spacing:.05em;color:var(--muted);font-size:12.5px;text-transform:uppercase}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.minibar{display:inline-block;width:64px;height:6px;border-radius:3px;background:var(--line);overflow:hidden;vertical-align:middle;margin-left:6px}
+.minibar>i{display:block;height:100%;background:var(--accent)}
+
+/* Missões e quiz */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px;background:var(--panel);cursor:pointer}
+.chip .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted)}
+.chip.half .dot{background:linear-gradient(90deg,var(--accent) 50%,transparent 50%);border-color:var(--accent)}
+.chip.done{border-color:var(--ok)} .chip.done .dot{background:var(--ok);border-color:var(--ok)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--panel)}
+.card.done{border-color:var(--ok);background:linear-gradient(var(--ok-soft),var(--ok-soft)),var(--panel)}
+.card-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pts{font-family:var(--f-mono);font-size:13px;color:var(--accent);white-space:nowrap}
+.steps{display:flex;flex-direction:column;gap:4px;font-size:14px;margin:0;padding:0;list-style:none}
+.steps li{display:flex;gap:8px;align-items:flex-start}
+.steps li::before{content:"";flex:none;width:12px;height:12px;margin-top:4px;border-radius:3px;border:1.5px solid var(--muted)}
+.steps li.ok::before{background:var(--ok);border-color:var(--ok)}
+.answer{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.answer input{width:110px}
+.fb{font-size:13.5px}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--alarm)}
+.hint{font-size:13px;color:var(--muted);border-left:2px solid var(--line);padding-left:8px}
+.q{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--panel)}
+.q.done{border-color:var(--ok)} .q.lost{border-color:var(--alarm)}
+.q .src{font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opts label{display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:14.5px}
+.opts input{margin-top:4px;accent-color:var(--accent)}
+.explain{font-size:13.5px;background:var(--panel2);border-radius:4px;padding:8px 10px}
+
+.rank-row.me td{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.online{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:middle}
+.offline{display:inline-block;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--muted);margin-right:6px;vertical-align:middle}
+pre.report{font-family:var(--f-mono);font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:12px;white-space:pre-wrap;word-break:break-word;margin:0;max-height:420px;overflow:auto}
+.code{font-family:var(--f-mono);font-size:22px;font-weight:600;letter-spacing:.06em;color:var(--accent)}
+details.panel summary{cursor:pointer;font-family:var(--f-display);font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-size:16px}
+.verify{display:flex;flex-direction:column;gap:8px}
+.warn{background:var(--alarm-soft);border:1px solid var(--alarm);color:var(--ink);border-radius:var(--r);padding:8px 12px;font-size:14px}
+.okbox{background:var(--ok-soft);border:1px solid var(--ok);border-radius:var(--r);padding:8px 12px;font-size:14px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-family:var(--f-display);font-weight:600;letter-spacing:.03em;transition:opacity .25s,transform .25s;max-width:calc(100% - 32px);text-align:center;z-index:5}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+/* Laboratório: sintonia ao lado da tendência */
+.lab{display:grid;gap:16px;grid-template-columns:minmax(0,340px) minmax(0,1fr) minmax(0,300px);
+  grid-template-areas:"plant chart ctrl" "plant off ctrl" "proc off mis";align-items:start}
+.a-plant{grid-area:plant}.a-chart{grid-area:chart}.a-ctrl{grid-area:ctrl}.a-off{grid-area:off}.a-proc{grid-area:proc}.a-mis{grid-area:mis}
+.a-ctrl{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));gap:10px}
+.a-ctrl .ctl{grid-template-columns:minmax(0,1fr) 78px}
+.live{font-size:12.5px;color:var(--water);white-space:nowrap}
+.sep{border:0;border-top:1px solid var(--line);margin:2px 0;width:100%}
+.sp-steps{display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:1200px){
+  .lab{grid-template-columns:minmax(0,1fr) minmax(0,300px);grid-template-areas:"chart ctrl" "off ctrl" "plant proc" "plant mis"}
+}
+@media (max-width:760px){
+  .lab{grid-template-columns:minmax(0,1fr);grid-template-areas:"chart" "ctrl" "plant" "off" "proc" "mis"}
+  .a-ctrl{position:static}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Controladores Lógicos Programáveis · Aulas 25 a 28</div>
+      <h1>Desafio de Nível LIC-101</h1>
+      <p class="lede">Sintonize o controle de nível da planta de líquidos antes de levar o código para o CLP. Os ganhos começam em zero: tudo o que o controlador fizer é decisão sua.</p>
+    </div>
+    <div class="player" aria-label="Sua pontuação">
+      <div class="player-row"><span class="lvl" id="lvlName">Estagiário</span><span class="xp"><span id="xpVal">0</span><small class="note"> / 90 XP</small></span></div>
+      <div class="xpbar" aria-hidden="true"><i id="xpBar"></i></div>
+      <div class="player-row note"><span id="lvlNext">Próximo nível em 20 XP</span><span id="xpParts">D 0 · M 0 · Q 0</span></div>
+      <div class="badges" id="badges"></div>
+    </div>
+  </header>
+
+  <section class="ident" aria-label="Identificação">
+    <label>Nome completo<input type="text" id="idNome" autocomplete="name" placeholder="Seu nome"></label>
+    <label>Matrícula<input type="text" id="idMat" placeholder="Ex.: 20231234"></label>
+    <label>Apelido no ranking<input type="text" id="idApe" maxlength="20" placeholder="Visível para a turma"></label>
+    <span class="note" id="idStatus">Preencha para liberar a rodada oficial e a entrega.</span>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Seções">
+    <button role="tab" id="tab-lab" aria-controls="pane-lab" aria-selected="true">Laboratório</button>
+    <button role="tab" id="tab-mis" aria-controls="pane-mis" aria-selected="false">Missões<span class="count" id="cntMis">0/5</span></button>
+    <button role="tab" id="tab-quiz" aria-controls="pane-quiz" aria-selected="false">Questionário<span class="count" id="cntQuiz">0/12</span></button>
+    <button role="tab" id="tab-rank" aria-controls="pane-rank" aria-selected="false">Ranking</button>
+    <button role="tab" id="tab-ent" aria-controls="pane-ent" aria-selected="false">Entrega</button>
+  </div>
+
+  <!-- ================= LABORATÓRIO ================= -->
+  <section role="tabpanel" id="pane-lab" aria-labelledby="tab-lab" class="stack">
+    <div class="lab">
+      <section class="panel plant a-plant" aria-label="Planta e faceplate">
+        <div class="panel-head"><h2>Planta de líquidos</h2><div class="pills" id="alarms"></div></div>
+        <svg viewBox="0 0 400 318" role="img" aria-label="Bomba P-101 com inversor, cano longo até o tanque TQ-101, saída HV-102, vazamento HV-103, transmissor LT-101 e controlador LIC-101">
+          <rect x="16" y="272" width="368" height="36" rx="3" fill="var(--water-soft)" stroke="var(--steel)" stroke-width="1.5"/>
+          <text x="200" y="295" class="lbl" text-anchor="middle">RESERVATÓRIO</text>
+          <path class="pipe" d="M58 272 V246"/>
+          <path class="pipe" d="M58 214 V150 H30 V100 H86 V60 H30 V36 H176 V60"/>
+          <path class="flow" id="fPump" d="M58 272 V246 M58 214 V150"/>
+          <path class="flow" id="fIn" d="M58 150 H30 V100 H86 V60 H30 V36 H176 V60"/>
+          <text x="36" y="124" class="lbl" style="font-size:10px">atraso de</text>
+          <text x="36" y="136" class="lbl" style="font-size:10px">transporte</text>
+          <circle class="pump" id="pump" cx="58" cy="230" r="16"/>
+          <path d="M50 239 L58 220 L66 239 Z" fill="var(--ink)"/>
+          <text x="58" y="263" class="tag">P-101</text>
+          <rect class="vfd" x="82" y="214" width="46" height="32" rx="3"/>
+          <text x="105" y="227" class="tag" style="font-size:9px">INV</text>
+          <text x="105" y="240" class="vfdtxt" id="vfdHz">0,0 Hz</text>
+          <line x1="82" y1="230" x2="74" y2="230" stroke="var(--ink)" stroke-width="1.4"/>
+          <rect class="tankwall" x="150" y="60" width="120" height="190" rx="3"/>
+          <rect class="watr" id="water" x="152" y="200" width="116" height="48"/>
+          <line class="spline" id="spLine" x1="146" x2="274" y1="150" y2="150"/>
+          <text class="lbl" id="spTag" x="146" y="146" text-anchor="end" style="fill:var(--sp)">SP</text>
+          <text class="levtxt" id="levTxt" x="210" y="160">0,0 cm</text>
+          <text x="210" y="78" class="tag">TQ-101</text>
+          <path class="pipe" d="M270 238 H350 V272"/>
+          <path class="flow" id="fOut" d="M270 238 H350 V272"/>
+          <path class="valve" id="vOut" d="M292 228 L292 248 L312 238 Z M332 228 L332 248 L312 238 Z"/>
+          <text x="312" y="222" class="tag">HV-102</text>
+          <path class="pipe" d="M150 238 H136 V272"/>
+          <path class="flow" id="fLeak" d="M150 238 H136 V272"/>
+          <path class="valve" id="vLeak" d="M126 252 L146 252 L136 262 Z M126 272 L146 272 L136 262 Z" transform="translate(0 -8)"/>
+          <text x="144" y="268" class="tag" text-anchor="start">HV-103</text>
+          <line x1="270" y1="122" x2="312" y2="122" stroke="var(--ink)" stroke-width="1.4"/>
+          <circle class="bubble" cx="330" cy="122" r="18"/>
+          <text x="330" y="119" class="tag">LT</text><text x="330" y="131" class="tag">101</text>
+          <path class="sig" d="M330 104 V70"/>
+          <circle class="bubble" cx="330" cy="52" r="18"/>
+          <line x1="312" y1="52" x2="348" y2="52" stroke="var(--ink)" stroke-width="1.2"/>
+          <text x="330" y="47" class="tag">LIC</text><text x="330" y="65" class="tag">101</text>
+          <path class="sig" d="M330 34 V18 H118 V214"/>
+        </svg>
+
+        <div class="face" aria-label="Faceplate LIC-101">
+          <div class="face-top">
+            <span class="face-tag">LIC-101 · OB30</span>
+            <div class="modes" role="group" aria-label="Modo">
+              <button type="button" id="manBtn" aria-pressed="false">MAN</button>
+              <button type="button" id="autoBtn" aria-pressed="true">AUTO</button>
+            </div>
+          </div>
+          <dl class="rows">
+            <dt>SP</dt><dd class="spc"><span id="spVal">25,0</span><small>cm</small></dd><span class="raw"></span>
+            <dt>PV</dt><dd class="pv"><span id="pvVal">0,0</span><small>cm</small></dd><span class="raw" id="pvRaw" title="Leitura bruta da entrada analógica">IW 0</span>
+            <dt>MV</dt><dd class="mvc"><span id="mvVal">0,0</span><small>%</small></dd><span class="raw" id="mvRaw" title="Valor bruto da saída analógica para o inversor">QW 0</span>
+          </dl>
+          <div class="bar" title="A marca vermelha indica 45 Hz (75 %)"><i id="mvBar"></i><b></b></div>
+          <div class="terms" id="terms"><span>P —</span><span>I —</span><span>D —</span></div>
+          <div class="ctl">
+            <label for="manRange">Saída manual (MAN) <span id="manHz">0,0 Hz</span></label>
+            <input type="range" id="manRange" min="0" max="100" step="0.5" value="0" disabled>
+            <input type="number" id="manNum" min="0" max="100" step="0.5" value="0" disabled aria-label="Saída manual em %">
+          </div>
+        </div>
+      </section>
+
+      
+        <section class="panel a-chart" aria-label="Tendência">
+          <div class="panel-head">
+            <h2>Tendência</h2>
+            <div class="inline">
+              <button class="btn sm" id="runBtn" type="button">Pausar</button>
+              <button class="btn sm" id="resetBtn" type="button">Reiniciar planta</button>
+              <label class="note" for="speed">Velocidade</label>
+              <select id="speed"><option value="1">1×</option><option value="5">5×</option><option value="10" selected>10×</option><option value="20">20×</option><option value="50">50×</option></select>
+              <label class="note" for="win">Janela</label>
+              <select id="win"><option value="120">2 min</option><option value="300" selected>5 min</option><option value="600">10 min</option></select>
+              <span class="note mono" id="clock">t = 0 s</span>
+            </div>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--water)"></i>PV · nível (cm)</span>
+            <span><i style="background:var(--sp)"></i>SP (cm)</span>
+            <span><i style="background:var(--mv)"></i>MV (%, eixo direito)</span>
+          </div>
+          <div class="chartbox" id="chartbox"><canvas id="chart" aria-label="Tendência de nível, setpoint e saída"></canvas></div>
+        </section>
+
+        <section class="official a-off" aria-label="Rodada oficial">
+          <div class="panel-head">
+            <h3>Rodada oficial · nota de desempenho</h3>
+            <span class="note" id="offInfo">Melhor nota: — · tentativas: 0</span>
+          </div>
+          <p class="note">Usa os ganhos, o bias, o Ts e o anti-windup atuais. Todos enfrentam o mesmo roteiro e o mesmo ruído do sensor. Vale a melhor tentativa.</p>
+          <div class="phases" id="phases">
+            <div class="phase"><b>Fase 1 · 0–240 s</b>Partida: 10 → 25 cm</div>
+            <div class="phase"><b>Fase 2 · 240–480 s</b>Degrau: 25 → 35 cm</div>
+            <div class="phase"><b>Fase 3 · 480–720 s</b>Vazamento HV-103 aberto</div>
+          </div>
+          <div class="prog" aria-hidden="true"><i id="offProg"></i></div>
+          <div class="inline">
+            <button class="btn primary" id="offStart" type="button">Iniciar rodada oficial</button>
+            <button class="btn danger" id="offAbort" type="button" hidden>Abortar</button>
+            <span class="note" id="offStatus"></span>
+          </div>
+          <div class="result" id="offResult" hidden></div>
+        </section>
+      
+    
+
+    
+      <section class="panel a-ctrl" aria-label="Controlador">
+        <div class="panel-head"><h2>Sintonia</h2><span class="live mono" id="liveErr">e = — cm</span></div>
+        <div class="ctl">
+          <label for="spR">Setpoint <span>0–50 cm</span></label>
+          <input type="range" id="spR" min="0" max="50" step="0.5" value="25">
+          <input type="number" id="spN" min="0" max="50" step="0.5" value="25" aria-label="Setpoint">
+        </div>
+        <div class="sp-steps"><button class="btn sm" type="button" data-spstep="-5" id="spStepM">SP −5</button><button class="btn sm" type="button" data-spstep="5" id="spStepP">SP +5</button></div>
+        <hr class="sep">
+        <div class="ctl">
+          <label for="kpR">Kp <span>%/cm</span></label>
+          <input type="range" id="kpR" min="0" max="20" step="0.1" value="0">
+          <input type="number" id="kpN" min="0" step="0.1" value="0" aria-label="Kp">
+        </div>
+        <div class="ctl">
+          <label for="kiR">Ki <span>%/(cm·s)</span></label>
+          <input type="range" id="kiR" min="0" max="0.5" step="0.005" value="0">
+          <input type="number" id="kiN" min="0" step="0.001" value="0" aria-label="Ki">
+        </div>
+        <div class="ctl">
+          <label for="kdR">Kd <span>%·s/cm</span></label>
+          <input type="range" id="kdR" min="0" max="30" step="0.1" value="0">
+          <input type="number" id="kdN" min="0" step="0.1" value="0" aria-label="Kd">
+        </div>
+        <div class="ctl">
+          <label for="biasR">Bias da saída <span>% somado à MV</span></label>
+          <input type="range" id="biasR" min="0" max="100" step="0.5" value="0">
+          <input type="number" id="biasN" min="0" max="100" step="0.5" value="0" aria-label="Bias">
+        </div>
+        <div class="inline">
+          <label class="note" for="ts">Tempo de ciclo do OB30</label>
+          <select id="ts"><option value="0.05">50 ms</option><option value="0.1" selected>100 ms</option><option value="0.25">250 ms</option><option value="0.5">500 ms</option><option value="1">1 s</option></select>
+        </div>
+        <label class="check"><input type="checkbox" id="aw"><span>Anti-windup<small>Para de somar o integral quando a MV satura em 0 % ou 100 %.</small></span></label>
+        <p class="eq">U = Bias + Kp·e + I + Kd·(e₁ − e₀)/Δt<br>I = I + Ki·e·Δt &nbsp;·&nbsp; e = R − Y</p>
+      </section>
+
+      <section class="panel a-proc" aria-label="Processo">
+        <div class="panel-head"><h2>Processo</h2></div>
+        <div class="ctl">
+          <label for="valveR">Válvula de saída HV-102 <span>%</span></label>
+          <input type="range" id="valveR" min="0" max="100" step="1" value="50">
+          <input type="number" id="valveN" min="0" max="100" step="1" value="50" aria-label="Abertura da HV-102">
+        </div>
+        <label class="check"><input type="checkbox" id="leak"><span>Abrir vazamento HV-103</span></label>
+        <details>
+          <summary class="note" style="cursor:pointer">Dados da planta</summary>
+          <div class="tablewrap"><table>
+            <tr><td>Área do tanque</td><td class="num">150 cm²</td></tr>
+            <tr><td>Altura útil · faixa do LT-101</td><td class="num">0–50 cm</td></tr>
+            <tr><td>Inversor</td><td class="num">0–60 Hz ↔ 0–100 %</td></tr>
+            <tr><td>Vazão da bomba a 60 Hz</td><td class="num">6 L/min</td></tr>
+            <tr><td>E/S analógicas (bruto)</td><td class="num">0–27648</td></tr>
+            <tr><td>Ruído do sensor</td><td class="num">σ ≈ 0,05 cm</td></tr>
+          </table></div>
+          <p class="note">Zona morta e atraso de transporte não estão na tabela: descubra nas missões.</p>
+        </details>
+      </section>
+
+      <section class="panel a-mis" aria-label="Missões em andamento">
+        <div class="panel-head"><h2>Missões</h2><button class="btn sm" type="button" data-goto="mis">Abrir</button></div>
+        <div class="chips" id="misChips"></div>
+        <p class="note" id="misHint">As missões são detectadas enquanto você experimenta aqui no laboratório.</p>
+      </section>
+    </div><!-- /lab -->
+  </section>
+
+  <!-- ================= MISSÕES ================= -->
+  <section role="tabpanel" id="pane-mis" aria-labelledby="tab-mis" class="stack" hidden>
+    <p class="note">Cada missão vale 5 XP. Primeiro faça o experimento no Laboratório (ele é detectado sozinho), depois responda. Cada resposta errada desconta 1 XP da missão (mínimo 2).</p>
+    <div class="cards" id="misCards"></div>
+  </section>
+
+  <!-- ================= QUESTIONÁRIO ================= -->
+  <section role="tabpanel" id="pane-quiz" aria-labelledby="tab-quiz" class="stack" hidden>
+    <p class="note">12 questões das aulas 25 a 28, 2,5 XP cada. Acertou de primeira: 2,5 XP. Na segunda tentativa: 1,25 XP. Depois de dois erros a questão fecha e mostra a explicação. Use ponto ou vírgula nas respostas numéricas.</p>
+    <div class="stack" id="quizList"></div>
+  </section>
+
+  <!-- ================= RANKING ================= -->
+  <section role="tabpanel" id="pane-rank" aria-labelledby="tab-rank" class="stack" hidden>
+    <section class="panel">
+      <div class="panel-head"><h2>Ranking da turma</h2><span class="note" id="rankStatus">Conectando…</span></div>
+      <div class="tablewrap"><table id="rankTable">
+        <thead><tr><th class="num">#</th><th>Apelido</th><th>Nível</th><th class="num">Desafio</th><th class="num">XP</th></tr></thead>
+        <tbody id="rankBody"></tbody>
+      </table></div>
+      <p class="note">O ranking mostra só o apelido. Os pontos do ranking são informativos: a nota oficial vem do relatório de entrega.</p>
+    </section>
+  </section>
+
+  <!-- ================= ENTREGA ================= -->
+  <section role="tabpanel" id="pane-ent" aria-labelledby="tab-ent" class="stack" hidden>
+    <section class="panel">
+      <div class="panel-head"><h2>Resumo da avaliação</h2></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Faceta</th><th>Como é avaliada</th><th class="num">Pontos</th></tr></thead>
+        <tbody id="sumBody"></tbody>
+      </table></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Reflexão (corrigida pela professora · 10 pts)</h2></div>
+      <label for="ref1"><strong>1.</strong> Justifique os ganhos da sua melhor rodada. O que cada termo (P, I, D e bias) resolveu na planta, considerando a zona morta e o atraso de transporte?</label>
+      <textarea id="ref1"></textarea>
+      <label for="ref2"><strong>2.</strong> Compare sua sintonia com a do PID_Compact após o auto-tuning na planta real. O que mudou e por quê?</label>
+      <textarea id="ref2"></textarea>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Relatório de entrega</h2></div>
+      <p class="note">Gere o relatório, copie o texto inteiro e cole na tarefa do Moodle. O código de verificação muda se qualquer número for editado.</p>
+      <div class="inline"><button class="btn primary" id="repGen" type="button">Gerar relatório</button><button class="btn" id="repCopy" type="button" hidden>Copiar texto</button><span class="note" id="repStatus"></span></div>
+      <div id="repOut" hidden class="stack">
+        <div>Código de verificação: <span class="code" id="repCode"></span></div>
+        <pre class="report" id="repText"></pre>
+      </div>
+    </section>
+    <details class="panel">
+      <summary>Área da professora</summary>
+      <div class="verify">
+        <label for="verIn" class="note">Cole aqui o relatório recebido (texto completo) para conferir o código de verificação.</label>
+        <textarea id="verIn" placeholder="RELATÓRIO — Desafio de Nível LIC-101 …"></textarea>
+        <div class="inline"><button class="btn" id="verBtn" type="button">Verificar</button></div>
+        <div id="verOut"></div>
+      </div>
+      <div class="verify" id="ownerTools" hidden>
+        <h3>Ranking</h3>
+        <p class="note">Com esta página aberta, o placar de quem está online é gravado no ranking compartilhado.</p>
+        <div class="inline"><button class="btn danger" id="clearRank" type="button">Zerar ranking</button><button class="btn" id="clearYes" type="button" hidden>Confirmar: apagar todos</button><span class="note" id="clearStatus"></span></div>
+      </div>
+    </details>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ===== Núcleo da simulação (planta + controlador + rodada oficial) =====
+const PLANT = Object.freeze({
+  A: 150,        // área da seção do tanque (cm²)
+  H: 50,         // altura útil (cm)
+  qmaxLmin: 6,   // vazão da bomba a 60 Hz (L/min)
+  fmax: 60,      // frequência máxima do inversor (Hz)
+  f0: 45,        // zona morta: abaixo disto a bomba não vence a coluna (Hz)
+  tauP: 1,       // constante de tempo da bomba (s)
+  delay: 4,      // atraso de transporte no cano (s)
+  k: 20,         // coef. da saída: Q = k·abertura·√h (cm³/s por √cm)
+  kLeak: 4,      // coef. do vazamento (cm³/s por √cm)
+  rawMax: 27648, // faixa nominal das E/S analógicas S7-1200
+});
+const DT = 0.02;
+const qmaxCm = () => PLANT.qmaxLmin * 1000 / 60;
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const clampN = (v, a, b) => Math.min(b, Math.max(a, v));
+
+function pumpFlowTarget(u) {
+  const f = clampN(u, 0, 100) / 100 * PLANT.fmax;
+  if (f <= PLANT.f0) return 0;
+  return qmaxCm() * (f - PLANT.f0) / (PLANT.fmax - PLANT.f0);
+}
+
+function createSim(seed) {
+  const S = {
+    rng: mulberry32(seed || 12345),
+    tune: { Kp: 0, Ki: 0, Kd: 0, bias: 0, aw: false, Ts: 0.1 },
+    reset(h0) {
+      this.t = 0; this.h = h0; this.qp = 0; this.qin = 0;
+      this.buf = new Float64Array(Math.max(1, Math.round(PLANT.delay / DT)));
+      this.bi = 0;
+      this.u = 0; this.mode = 'auto'; this.uMan = 0; this.I = 0; this.ePrev = null;
+      this.terms = { P: 0, I: 0, D: 0 };
+      this.ctrlAcc = 0; this.pv = h0; this.overflow = false;
+      this.valve = 50; this.leak = false; this.extra = false; this.noise = 0.05;
+      this.qout = 0; this.qleak = 0; this.sp = 25;
+    },
+    gauss() {
+      let u = 0, v = 0;
+      while (!u) u = this.rng(); while (!v) v = this.rng();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    },
+    controller() {
+      const T = this.tune, Ts = T.Ts;
+      const pv = clampN(this.h + this.gauss() * this.noise, 0, PLANT.H * 1.05);
+      const e = this.sp - pv;
+      if (this.ePrev === null) this.ePrev = e;
+      if (this.mode === 'auto') {
+        const P = T.Kp * e;
+        const D = T.Kd * (e - this.ePrev) / Ts;            // Kd·((R1−Y1)−(R0−Y0))/Δt
+        const Inew = this.I + T.Ki * e * Ts;                 // U = U + Ki·(R−Y)·Δt
+        const uu = T.bias + P + Inew + D;
+        if (T.aw && ((uu > 100 && e > 0) || (uu < 0 && e < 0))) { /* congela I */ }
+        else this.I = Inew;
+        this.u = clampN(T.bias + P + this.I + D, 0, 100);
+        this.terms = { P, I: this.I, D };
+      } else {
+        this.u = this.uMan;
+        this.I = this.uMan - T.bias - T.Kp * e;              // transferência sem solavanco
+        this.terms = { P: NaN, I: NaN, D: NaN };
+      }
+      this.pv = pv; this.ePrev = e;
+    },
+    step(dt) {
+      const target = pumpFlowTarget(this.u);
+      this.qp += dt / PLANT.tauP * (target - this.qp);
+      this.qin = this.buf[this.bi]; this.buf[this.bi] = this.qp; this.bi = (this.bi + 1) % this.buf.length;
+      const sq = Math.sqrt(Math.max(this.h, 0));
+      this.qout = PLANT.k * (this.valve / 100) * sq;
+      this.qleak = this.leak ? PLANT.kLeak * sq : 0;
+      const qx = this.extra ? 15 : 0;
+      this.h += dt * (this.qin + qx - this.qout - this.qleak) / PLANT.A;
+      this.overflow = this.h >= PLANT.H && (this.qin + qx) > (this.qout + this.qleak);
+      this.h = clampN(this.h, 0, PLANT.H);
+      this.t += dt;
+      this.ctrlAcc += dt;
+      while (this.ctrlAcc >= this.tune.Ts - 1e-9) { this.ctrlAcc -= this.tune.Ts; this.controller(); }
+    },
+  };
+  S.reset(10);
+  return S;
+}
+
+// ----- Rodada oficial -----
+const OFFICIAL = Object.freeze({
+  seed: 2026, h0: 10, duration: 720,
+  phases: [
+    { t0: 0,   t1: 240, sp: 25, leak: false, kind: 'step' },
+    { t0: 240, t1: 480, sp: 35, leak: false, kind: 'step' },
+    { t0: 480, t1: 720, sp: 35, leak: true,  kind: 'dist' },
+  ],
+});
+const SCORE = Object.freeze({
+  // [peso, bom, ruim] — nota linear entre "bom" (100 %) e "ruim" (0 %)
+  iae:    [25, 700, 6000],  // cm·s, rodada inteira
+  os:     [15, 3, 40],       // % médio de sobressinal nos dois degraus
+  ts:     [15, 70, 240],     // s, acomodação média (±2 % do degrau, mín. 0,3 cm)
+  ess:    [20, 0.15, 2],     // cm, erro médio absoluto nos últimos 30 s de cada fase
+  dist:   [15, 1.0, 4],      // cm, desvio máximo após o vazamento
+  smooth: [10, 6, 60],       // %/s, variação média da MV (esforço/ruído)
+});
+
+function officialEvaluator() {
+  const ph = OFFICIAL.phases;
+  const R = { iae: 0, tv: 0, uPrev: null, perPhase: ph.map(p => ({ peak: 0, lastOut: p.t0, essSum: 0, essN: 0, maxDev: 0, y0: null })) };
+  return {
+    phaseAt(t) { return ph.findIndex(p => t >= p.t0 && t < p.t1); },
+    sample(S, dt) {
+      const i = this.phaseAt(S.t - 1e-9); if (i < 0) return;
+      const p = ph[i], q = R.perPhase[i];
+      if (q.y0 === null) q.y0 = S.h;
+      const e = p.sp - S.h;
+      R.iae += Math.abs(e) * dt;
+      if (R.uPrev !== null) R.tv += Math.abs(S.u - R.uPrev);
+      R.uPrev = S.u;
+      if (p.kind === 'step') {
+        const size = Math.abs(p.sp - q.y0) || 1, dir = Math.sign(p.sp - q.y0) || 1;
+        q.size = size;
+        q.peak = Math.max(q.peak, dir * (S.h - p.sp));
+        if (Math.abs(e) > Math.max(0.02 * size, 0.3)) q.lastOut = S.t;
+      } else {
+        q.maxDev = Math.max(q.maxDev, Math.abs(e));
+        if (Math.abs(e) > 0.3) q.lastOut = S.t;
+      }
+      if (S.t >= p.t1 - 30) { q.essSum += Math.abs(e); q.essN++; }
+    },
+    result() {
+      const steps = ph.map((p, i) => [p, R.perPhase[i]]).filter(([p]) => p.kind === 'step');
+      const os = steps.reduce((a, [p, q]) => a + Math.max(0, q.peak) / q.size * 100, 0) / steps.length;
+      const ts = steps.reduce((a, [p, q]) => a + Math.min(p.t1 - p.t0, q.lastOut - p.t0), 0) / steps.length;
+      const ess = R.perPhase.reduce((a, q) => a + (q.essN ? q.essSum / q.essN : 99), 0) / ph.length;
+      const dq = R.perPhase[ph.findIndex(p => p.kind === 'dist')];
+      const raw = { iae: R.iae, os, ts, ess, dist: dq.maxDev, smooth: R.tv / OFFICIAL.duration };
+      const parts = {}; let total = 0;
+      for (const k of Object.keys(SCORE)) {
+        const [w, good, bad] = SCORE[k];
+        const f = clampN((bad - raw[k]) / (bad - good), 0, 1);
+        parts[k] = w * f;
+      }
+      // sobressinal e suavidade só valem se a malha de fato rastreou o SP
+      const fIae = parts.iae / SCORE.iae[0];
+      parts.os *= fIae; parts.smooth *= fIae;
+      for (const k of Object.keys(parts)) total += parts[k];
+      return { raw, parts, total };
+    },
+  };
+}
+
+function runOfficialHeadless(tune) {
+  const S = createSim(OFFICIAL.seed);
+  Object.assign(S.tune, tune);
+  S.reset(OFFICIAL.h0);
+  const ev = officialEvaluator();
+  while (S.t < OFFICIAL.duration - 1e-9) {
+    const i = ev.phaseAt(S.t);
+    if (i >= 0) { S.sp = OFFICIAL.phases[i].sp; S.leak = OFFICIAL.phases[i].leak; }
+    S.step(DT); ev.sample(S, DT);
+  }
+  return ev.result();
+}
+
+if (typeof module !== 'undefined') module.exports = { PLANT, createSim, runOfficialHeadless, OFFICIAL, SCORE, pumpFlowTarget };
+
+</script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const fmt = (v, d=1) => Number.isFinite(v) ? v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+  const clamp = clampN;
+  const parseNum = s => { const v = Number(String(s).trim().replace(/\s/g,'').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ================= Persistência local =================
+  const KEY = 'lic101-aval-v1';
+  const blank = () => ({ id:{nome:'',mat:'',ape:''}, pid:Math.random().toString(36).slice(2,12),
+    mis:{e1:false,a1:null,w1:0,ok1:false,e2:false,a2:null,w2:0,ok2:false,e3:false,v3:null,a3:null,w3:0,ok3:false,ok4:false,w5a:false,w5b:false},
+    quiz:{}, best:null, attempts:0, ref:{r1:'',r2:''}, tab:'lab' });
+  let ST;
+  try { ST = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(e) { ST = blank(); }
+  ST.mis = Object.assign(blank().mis, ST.mis||{}); ST.id = Object.assign(blank().id, ST.id||{}); ST.ref = Object.assign(blank().ref, ST.ref||{});
+  let saveT = null;
+  function save(){ clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(ST)); } catch(e){} }, 300); }
+
+  let toastT = null;
+  function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 3200); }
+
+  // ================= Simulações =================
+  const lab = createSim((Date.now() & 0xffff) + 7);
+  lab.reset(10); lab.mode = 'auto'; lab.sp = 25;
+  let off = null, offEval = null, offHist = [], labHist = [];
+  let active = lab;
+  const HIST_DT = 0.5;
+  let histAcc = 0;
+
+  // ================= Abas =================
+  const TABS = ['lab','mis','quiz','rank','ent'];
+  function showTab(name){
+    TABS.forEach(n => { $('tab-'+n).setAttribute('aria-selected', n===name); $('pane-'+n).hidden = n!==name; });
+    ST.tab = name; save();
+    if (name === 'lab') requestAnimationFrame(sizeCanvas);
+  }
+  TABS.forEach(n => $('tab-'+n).addEventListener('click', () => showTab(n)));
+  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
+  $('pane-lab').parentElement.querySelector('.tabs').addEventListener('keydown', e => {
+    const i = TABS.indexOf(ST.tab); let j = i;
+    if (e.key === 'ArrowRight') j = (i+1)%TABS.length; else if (e.key === 'ArrowLeft') j = (i+TABS.length-1)%TABS.length; else return;
+    showTab(TABS[j]); $('tab-'+TABS[j]).focus();
+  });
+
+  // ================= Identificação =================
+  const idOk = () => ST.id.nome.trim().length >= 3 && ST.id.mat.trim().length >= 3 && ST.id.ape.trim().length >= 2;
+  [['idNome','nome'],['idMat','mat'],['idApe','ape']].forEach(([el,k]) => {
+    $(el).value = ST.id[k];
+    $(el).addEventListener('input', () => { ST.id[k] = $(el).value; save(); renderIdent(); pushPresence(); });
+  });
+  function renderIdent(){
+    $('idStatus').textContent = idOk() ? 'Identificação completa.' : 'Preencha para liberar a rodada oficial e a entrega.';
+    updateOfficialUI();
+  }
+
+  // ================= Controles do laboratório =================
+  let lastChangeT = 0; const track = [];
+  function markChange(){ lastChangeT = lab.t; track.length = 0; satAcc = 0; }
+  function pair(r, n, onSet, onCommit){
+    $(r).addEventListener('input', () => { $(n).value = $(r).value; onSet(Number($(r).value)); });
+    $(n).addEventListener('change', () => { const v = parseNum($(n).value); if (!Number.isFinite(v)) return; $(r).value = v; onSet(v); onCommit && onCommit(v); });
+    $(r).addEventListener('change', () => onCommit && onCommit(Number($(r).value)));
+  }
+  pair('kpR','kpN', v => { lab.tune.Kp = Math.max(0,v); markChange(); });
+  pair('kiR','kiN', v => { lab.tune.Ki = Math.max(0,v); markChange(); });
+  pair('kdR','kdN', v => { lab.tune.Kd = Math.max(0,v); markChange(); });
+  pair('biasR','biasN', v => { lab.tune.bias = clamp(v,0,100); markChange(); });
+  $('ts').addEventListener('change', () => { lab.tune.Ts = Number($('ts').value); lab.ctrlAcc = 0; markChange(); });
+  $('aw').addEventListener('change', () => { lab.tune.aw = $('aw').checked; markChange(); });
+  pair('spR','spN', v => { lab.sp = clamp(v,0,PLANT.H); markChange(); });
+  pair('valveR','valveN', v => { lab.valve = clamp(v,0,100); markChange(); });
+  document.querySelectorAll('[data-spstep]').forEach(b => b.addEventListener('click', () => { if (off) return; const v = clamp(lab.sp + Number(b.dataset.spstep), 0, PLANT.H); lab.sp = v; $('spR').value = v; $('spN').value = v; markChange(); }));
+  $('leak').addEventListener('change', () => { lab.leak = $('leak').checked; markChange(); });
+  let manRef = 0;
+  pair('manRange','manNum', v => { lab.uMan = clamp(v,0,100); }, v => {
+    if (lab.mode === 'manual' && Math.abs(v - manRef) >= 10 && v*0.6 > PLANT.f0 + 0.5 && !ST.mis.e2){ ST.mis.e2 = true; save(); toast('Experimento registrado: degrau em malha aberta'); renderMissions(); }
+    manRef = v;
+  });
+
+  function setMode(m){
+    if (off) return;
+    if (m === lab.mode) return;
+    if (m === 'manual'){ lab.uMan = lab.u; manRef = lab.u; $('manRange').value = lab.u.toFixed(1); $('manNum').value = lab.u.toFixed(1); }
+    lab.mode = m; markChange(); renderMode();
+  }
+  function renderMode(){
+    const m = active.mode;
+    $('manBtn').setAttribute('aria-pressed', m==='manual'); $('autoBtn').setAttribute('aria-pressed', m==='auto');
+    ['manRange','manNum'].forEach(i => $(i).disabled = m!=='manual' || !!off);
+  }
+  $('manBtn').addEventListener('click', () => setMode('manual'));
+  $('autoBtn').addEventListener('click', () => setMode('auto'));
+
+  let running = true;
+  $('runBtn').addEventListener('click', () => { running = !running; $('runBtn').textContent = running ? 'Pausar' : 'Continuar'; });
+  $('resetBtn').addEventListener('click', () => {
+    if (off) return;
+    const keep = Object.assign({}, lab.tune);
+    lab.reset(10); Object.assign(lab.tune, keep);
+    lab.sp = Number($('spN').value); lab.valve = Number($('valveN').value); lab.leak = $('leak').checked;
+    lab.mode = 'auto'; labHist = []; markChange(); renderMode();
+  });
+
+  const LOCKABLE = ['spStepM','spStepP','kpR','kpN','kiR','kiN','kdR','kdN','biasR','biasN','ts','aw','spR','spN','valveR','valveN','leak','resetBtn','manBtn','autoBtn'];
+
+  // ================= Rodada oficial =================
+  function updateOfficialUI(){
+    const b = ST.best;
+    $('offInfo').textContent = `Melhor nota: ${b ? fmt(b.total) + ' / 100' : '—'} · tentativas: ${ST.attempts}`;
+    $('offStart').disabled = !!off || !idOk();
+    $('offStatus').textContent = off ? '' : (idOk() ? '' : 'Preencha nome, matrícula e apelido para participar.');
+  }
+  $('offStart').addEventListener('click', () => {
+    if (off || !idOk()) return;
+    off = createSim(OFFICIAL.seed);
+    Object.assign(off.tune, lab.tune);
+    off.reset(OFFICIAL.h0); off.mode = 'auto';
+    offEval = officialEvaluator(); offHist = []; histAcc = 0;
+    active = off; running = true; $('runBtn').textContent = 'Pausar';
+    if (Number($('speed').value) < 10) $('speed').value = '20';
+    LOCKABLE.forEach(i => $(i).disabled = true);
+    $('offAbort').hidden = false; $('offResult').hidden = true;
+    ST.attempts++; save(); updateOfficialUI(); renderMode();
+    $('offStatus').textContent = 'Rodada em andamento. Os controles ficam travados até o fim.';
+  });
+  $('offAbort').addEventListener('click', () => endOfficial(true));
+
+  function endOfficial(aborted){
+    const res = aborted ? null : offEval.result();
+    off = null; offEval = null; active = lab;
+    LOCKABLE.forEach(i => $(i).disabled = false);
+    $('offAbort').hidden = true; $('offProg').style.width = '0%';
+    document.querySelectorAll('.phase').forEach(p => p.classList.remove('now'));
+    renderMode();
+    if (aborted){ $('offStatus').textContent = 'Rodada abortada. A tentativa conta, mas não gera nota.'; updateOfficialUI(); return; }
+    const t = lab.tune;
+    const rec = { total: Math.round(res.total*10)/10, parts: res.parts, raw: res.raw, tune: { Kp:t.Kp, Ki:t.Ki, Kd:t.Kd, bias:t.bias, aw:t.aw, Ts:t.Ts }, at: new Date().toISOString() };
+    const improved = !ST.best || rec.total > ST.best.total;
+    if (improved) ST.best = rec;
+    save(); renderResult(rec, improved); updateOfficialUI(); renderXP(); pushPresence();
+    $('offStatus').textContent = improved ? 'Nova melhor nota!' : 'Sua melhor nota continua valendo.';
+    toast(improved ? `Rodada oficial: ${fmt(rec.total)} pontos. Novo recorde!` : `Rodada oficial: ${fmt(rec.total)} pontos`);
+  }
+  function medal(total){ return total >= 90 ? ['gold','Ouro'] : total >= 75 ? ['silver','Prata'] : total >= 60 ? ['bronze','Bronze'] : ['none','Sem medalha']; }
+  const CRIT = {
+    iae:['Erro acumulado (IAE)', r => fmt(r.iae,0)+' cm·s'],
+    os:['Sobressinal médio', r => fmt(r.os)+' %'],
+    ts:['Acomodação média', r => fmt(r.ts,0)+' s'],
+    ess:['Erro em regime', r => fmt(r.ess,2)+' cm'],
+    dist:['Desvio no vazamento', r => fmt(r.dist,2)+' cm'],
+    smooth:['Suavidade da MV', r => fmt(r.smooth,1)+' %/s'],
+  };
+  function renderResult(rec, improved){
+    const [cls, name] = medal(rec.total);
+    const rows = Object.keys(CRIT).map(k => {
+      const w = SCORE[k][0], p = rec.parts[k];
+      return `<tr><td>${CRIT[k][0]}</td><td class="num">${CRIT[k][1](rec.raw)}</td><td class="num">${fmt(p)} / ${w}<span class="minibar"><i style="width:${(p/w*100).toFixed(0)}%"></i></span></td></tr>`;
+    }).join('');
+    const tips = [];
+    if (rec.raw.ess > 0.5) tips.push('Ainda sobra erro em regime: falta ação integral ou ela está fraca.');
+    if (rec.raw.os > 15) tips.push('Sobressinal alto: integral forte demais, windup ou ganho alto para o atraso de transporte.');
+    if (rec.raw.smooth > 20) tips.push('A MV está nervosa: o termo derivativo amplifica o ruído do sensor.');
+    if (rec.parts.iae < 5) tips.push('O nível mal acompanhou o SP. Lembre da zona morta: abaixo de 75 % a bomba não empurra água.');
+    $('offResult').innerHTML = `
+      <div class="score"><span class="big">${fmt(rec.total)}</span><span class="note">/ 100</span><span class="medal ${cls}">${name}</span>${improved?'<span class="badge on">Recorde</span>':''}</div>
+      <div class="tablewrap"><table><thead><tr><th>Critério</th><th class="num">Medido</th><th class="num">Pontos</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="note mono">Kp ${fmt(rec.tune.Kp,2)} · Ki ${fmt(rec.tune.Ki,3)} · Kd ${fmt(rec.tune.Kd,2)} · Bias ${fmt(rec.tune.bias,1)} % · Ts ${fmt(rec.tune.Ts*1000,0)} ms · AW ${rec.tune.aw?'ligado':'desligado'}</p>
+      ${tips.length ? '<p class="hint">'+tips.map(esc).join(' ')+'</p>' : ''}`;
+    $('offResult').hidden = false;
+  }
+
+  // ================= Missões =================
+  let m1acc = 0, satAcc = 0;
+  const MIS = [
+    { id:1, title:'Caça à zona morta', src:'Atuador · inversor',
+      steps:[ ['Em MAN, mantenha o inversor entre 40 e 50 Hz por 20 s de processo','e1'] ],
+      ask:'A partir de qual frequência (Hz) a bomba começa a vencer a coluna d\'água?', ans:'a1', wrong:'w1', ok:'ok1', exp:'e1',
+      check: v => Math.abs(v - PLANT.f0) <= 1.5,
+      hint:'Suba a saída manual aos poucos e observe quando o nível para de cair e começa a subir. Use a marca vermelha da barra de MV como referência.' },
+    { id:2, title:'Cronometre o atraso', src:'Processo · cano longo',
+      steps:[ ['Em MAN, acima da zona morta, dê um degrau de pelo menos 10 % na saída','e2'] ],
+      ask:'Quantos segundos o nível leva para começar a reagir depois do degrau na bomba?', ans:'a2', wrong:'w2', ok:'ok2', exp:'e2',
+      check: v => v >= PLANT.delay - 1 && v <= PLANT.delay + 2,
+      hint:'Use a velocidade 1× e o relógio da tendência. Com o processo estável, mude a saída manual de uma vez (solte o controle deslizante) e conte.' },
+    { id:3, title:'Só proporcional', src:'Aula 27 · U = K(R − Y)',
+      steps:[ ['Em AUTO com Kp > 0 e Ki = Kd = 0, deixe o nível estabilizar por 150 s sem mexer em nada','e3'] ],
+      ask:'Qual erro em regime (SP − PV, em cm) você mediu?', ans:'a3', wrong:'w3', ok:'ok3', exp:'e3',
+      check: v => ST.mis.v3 !== null && Math.abs(v - ST.mis.v3) <= Math.max(0.3, Math.abs(ST.mis.v3)*0.15),
+      hint:'Leia a diferença entre a linha do SP e a do nível na tendência, ou entre SP e PV no faceplate.' },
+    { id:4, title:'O integral zera o erro', src:'Aula 27 · U = U + Ki(R − Y)Δt',
+      steps:[ ['Em AUTO com Ki > 0, mantenha o erro médio abaixo de 0,25 cm por 30 s, pelo menos 90 s depois da última mudança','ok4'] ],
+      hint:'Não precisa responder nada: a missão fecha sozinha quando o erro em regime some.' },
+    { id:5, title:'Provoque e corrija o windup', src:'Saturação do atuador',
+      steps:[ ['Anti-windup desligado: MV presa em 100 % por 30 s e integral acima de 100 %','w5a'], ['Anti-windup ligado: MV presa em 100 % por 30 s','w5b'] ],
+      hint:'Abra a HV-102 em 100 % e peça SP = 48 cm: a bomba não dá conta. Depois baixe o SP e compare a demora para o nível voltar com e sem anti-windup.' },
+  ];
+  const misDone = m => m.id === 4 ? ST.mis.ok4 : m.id === 5 ? (ST.mis.w5a && ST.mis.w5b) : ST.mis[m.ok];
+  const misPts = m => !misDone(m) ? 0 : (m.wrong ? Math.max(2, 5 - ST.mis[m.wrong]) : 5);
+  const misTotal = () => MIS.reduce((a,m) => a + misPts(m), 0);
+
+  function renderMissions(){
+    const done = MIS.filter(misDone).length;
+    $('cntMis').textContent = `${done}/5`;
+    $('misChips').innerHTML = MIS.map(m => {
+      const partial = !misDone(m) && m.steps.some(([,k]) => ST.mis[k]);
+      return `<button type="button" class="chip ${misDone(m)?'done':partial?'half':''}" data-goto-mis="${m.id}"><span class="dot"></span>${esc(m.title)}</button>`;
+    }).join('');
+    $('misChips').querySelectorAll('[data-goto-mis]').forEach(b => b.addEventListener('click', () => showTab('mis')));
+    $('misCards').innerHTML = MIS.map(m => {
+      const d = misDone(m);
+      const steps = m.steps.map(([txt,k]) => `<li class="${ST.mis[k]?'ok':''}">${esc(txt)}</li>`).join('');
+      let ask = '';
+      if (m.ask){
+        const can = ST.mis[m.exp] && !d;
+        const v3 = m.id===3 && ST.mis.e3 ? `<p class="note">Valor registrado pelo simulador no seu experimento: oculto até você responder.</p>` : '';
+        ask = `<div><p>${esc(m.ask)}</p>${v3}
+          <div class="answer"><input type="text" inputmode="decimal" id="misA${m.id}" ${can?'':'disabled'} value="${ST.mis[m.ans]!==null?esc(ST.mis[m.ans]):''}" aria-label="Resposta da missão ${m.id}">
+          <button class="btn sm" type="button" data-mis="${m.id}" ${can?'':'disabled'}>Responder</button>
+          <span class="fb ${d?'ok':ST.mis[m.wrong]?'bad':''}" id="misF${m.id}">${d?'Correto!':ST.mis[m.wrong]?`Ainda não. Erros: ${ST.mis[m.wrong]}`:(ST.mis[m.exp]?'':'Faça o experimento primeiro.')}</span></div></div>`;
+      }
+      return `<article class="card ${d?'done':''}"><div class="card-head"><h3>${m.id}. ${esc(m.title)}</h3><span class="pts">${misPts(m)} / 5 XP</span></div>
+        <span class="note">${esc(m.src)}</span><ul class="steps">${steps}</ul>${ask}<p class="hint">${esc(m.hint)}</p></article>`;
+    }).join('');
+    $('misCards').querySelectorAll('[data-mis]').forEach(b => b.addEventListener('click', () => answerMission(Number(b.dataset.mis))));
+    renderXP(); renderSummary();
+  }
+  function answerMission(id){
+    const m = MIS.find(x => x.id === id), v = parseNum($('misA'+id).value);
+    if (!Number.isFinite(v)) { $('misF'+id).textContent = 'Digite um número.'; return; }
+    ST.mis[m.ans] = String(v);
+    if (m.check(v)) { ST.mis[m.ok] = true; toast(`Missão concluída: ${m.title}`); }
+    else ST.mis[m.wrong]++;
+    save(); renderMissions(); pushPresence();
+  }
+  function checkMissionsTick(){
+    if (off) return;
+    const s = lab, f = s.u*0.6, M = ST.mis; let changed = false;
+    track.push({ t:s.t, e:s.sp - s.h, h:s.h }); while (track.length && track[0].t < s.t - 40) track.shift();
+    if (s.mode === 'manual' && f >= 40 && f <= 50){ m1acc += HIST_DT; if (m1acc >= 20 && !M.e1){ M.e1 = true; changed = true; toast('Experimento registrado: zona morta'); } } else m1acc = 0;
+    const since = s.t - lastChangeT;
+    const last30 = track.filter(p => p.t >= s.t - 30);
+    if (s.mode === 'auto' && last30.length >= 50){
+      const me = last30.reduce((a,p)=>a+p.e,0)/last30.length;
+      const mabs = last30.reduce((a,p)=>a+Math.abs(p.e),0)/last30.length;
+      const drift = Math.abs(last30[last30.length-1].h - last30[0].h);
+      const T = s.tune;
+      if (T.Kp > 0 && T.Ki === 0 && T.Kd === 0 && since >= 150 && drift < 0.25 && Math.abs(me) >= 0.3 && !M.ok3){
+        const v = Math.round(me*100)/100;
+        if (!M.e3 || Math.abs((M.v3||0) - v) > 0.05){ if (!M.e3) toast('Experimento registrado: controle só P'); M.e3 = true; M.v3 = v; changed = true; }
+      }
+      if (T.Ki > 0 && since >= 90 && mabs < 0.25 && !M.ok4){ M.ok4 = true; changed = true; toast('Missão concluída: O integral zera o erro'); }
+    }
+    if (s.mode === 'auto' && s.u >= 99.9){ satAcc += HIST_DT;
+      if (satAcc >= 30){
+        if (!s.tune.aw && s.I > 100 && !M.w5a){ M.w5a = true; changed = true; toast('Windup provocado!'); }
+        if (s.tune.aw && !M.w5b){ M.w5b = true; changed = true; toast('Saturação com anti-windup registrada'); }
+      }
+    } else satAcc = 0;
+    if (changed){ save(); renderMissions(); pushPresence(); }
+  }
+
+  // ================= Questionário =================
+  const QUIZ = [
+    { src:'Aula 25 · Malha aberta e fechada', q:'No exemplo do forno elétrico sem termostato, por que a temperatura atingida no inverno é diferente da do verão?',
+      opts:['O controle está em malha aberta: nada mede a temperatura para corrigir a potência.','O forno usa controle derivativo, que depende da estação.','O sensor NTC perde a calibração no frio.','A malha fechada amplifica as perturbações do ambiente.'], a:0,
+      ex:'Sem medição (malha aberta), a potência é fixa e a temperatura final depende das perdas para o ambiente. O termostato fecha a malha.' },
+    { src:'Aula 25 · Norm_X e Scale_X', q:'O LT-101 entrega 0–27648 para 0–50 cm. O CLP lê 16589 na entrada analógica. Qual nível, em cm, o Scale_X deve devolver? (1 casa decimal)',
+      num:16589/27648*50, tol:0.15, ex:'Norm_X: 16589/27648 ≈ 0,600. Scale_X: 0,600 × 50 cm = 30,0 cm.' },
+    { src:'Aula 25 · Saída analógica', q:'O inversor recebe 0–27648 para 0–60 Hz. Que valor inteiro deve ser escrito na saída analógica para a bomba girar a 52,5 Hz?',
+      num:52.5/60*27648, tol:25, ex:'52,5/60 = 0,875; 0,875 × 27648 = 24192.' },
+    { src:'Aula 26 · Relé de estado sólido', q:'Com saída digital 0–24 V, como o CLP controla a potência média entregue a uma resistência através do relé de estado sólido?',
+      opts:['Variando a tensão da saída digital.','Por PWM: liga e desliga o relé com uma razão cíclica proporcional à potência desejada.','Colocando uma contatora em série com o relé.','Usando o bloco Scale_X na saída digital.'], a:1,
+      ex:'A saída digital só liga ou desliga. A razão cíclica do PWM define a potência média na carga.' },
+    { src:'Aula 27 · Controle proporcional', q:'Com U = K·(R − Y), K = 4 %/cm, R = 30 cm e Y = 26,5 cm, quanto vale U, em %?',
+      num:14, tol:0.05, ex:'U = 4 × (30 − 26,5) = 4 × 3,5 = 14 %.' },
+    { src:'Aula 27 · Termo integral', q:'Na interrupção cíclica de 100 ms, U = U + Ki·(R − Y)·Δt. Se U vale 62,0 %, Ki = 0,5 %/(cm·s) e o erro é 4 cm, quanto vale U depois de um ciclo?',
+      num:62.2, tol:0.01, ex:'U = 62,0 + 0,5 × 4 × 0,1 = 62,2 %.' },
+    { src:'Aula 27 · Termo derivativo', q:'U_D = Kd·((R1 − Y1) − (R0 − Y0))/Δt. Com Kd = 2 %·s/cm, erro anterior 3,5 cm, erro atual 3,0 cm e Δt = 0,1 s, quanto vale U_D, em %?',
+      num:-10, tol:0.05, ex:'U_D = 2 × (3,0 − 3,5)/0,1 = 2 × (−5) = −10 %. O sinal negativo freia a aproximação do SP.' },
+    { src:'Aula 27 · Interrupção cíclica', q:'Por que o cálculo do PID deve rodar em uma interrupção cíclica (OB30) e não no Main (OB1)?',
+      opts:['Para garantir um Δt constante entre as execuções, já que integral e derivada dependem dele.','Porque o OB1 não consegue ler entradas analógicas.','Porque a interrupção cíclica sempre executa mais rápido que o OB1.','Porque só a interrupção cíclica funciona com vários computadores online.'], a:0,
+      ex:'O tempo de varredura do OB1 varia. No OB30 o Δt é fixo e conhecido, o que mantém corretos os termos I e D.' },
+    { src:'Aula 27 · Sintonia', q:'Segundo a aula, o que um tempo integral muito pequeno (integral muito forte) pode causar?',
+      opts:['Erro grande em regime.','Sistema lento.','Possível instabilidade e oscilações.','Nenhum efeito sobre o erro.'], a:2,
+      ex:'Integral forte acumula correção depressa demais e faz o processo ultrapassar e oscilar em torno do SP.' },
+    { src:'Aula 28 · Blocos Siemens', q:'Qual bloco Siemens é o mais indicado para o controle de nível com a bomba acionada por inversor (saída analógica)?',
+      opts:['PID_Temp','PID_3Step','PID_Compact','TON'], a:2,
+      ex:'PID_Compact é o bloco geral para processos com saída analógica. PID_Temp é para aquecimento e resfriamento; PID_3Step, para atuadores de abre e fecha.' },
+    { src:'Aula 28 · Trabalho em rede', q:'Chegou sua vez de editar a sua network no projeto compartilhado do CLP. Qual a sequência correta?',
+      opts:['Download, editar, upload.','Upload do dispositivo para trazer as mudanças dos colegas, editar a sua network, download.','Editar e fazer download direto, sem upload.','Criar um projeto novo e fazer download dele.'], a:1,
+      ex:'O upload traz o que os colegas já mudaram. Sem ele, o seu download apagaria o trabalho deles.' },
+    { src:'Planta de líquidos · Zona morta e atraso', q:'Na planta, a bomba só vence a coluna d\'água acima de 45 Hz e o cano gera atraso de transporte. Com controle só P e bias zero, partindo de 10 cm com SP = 25 cm, o que acontece?',
+      opts:['O nível sobe e para exatamente no SP.','Enquanto Kp·e for menor que 75 % (45 Hz), a bomba não empurra água: o nível fica muito abaixo do SP.','O atraso de transporte elimina a zona morta.','A bomba trabalha sempre a 60 Hz.'], a:1,
+      ex:'Com bias zero, só um erro grande gera MV acima de 75 %. Um bias perto do ponto de operação, ou a ação integral, resolve. Ganhos altos para compensar esbarram no atraso de transporte e oscilam.' },
+  ];
+  const quizPts = () => QUIZ.reduce((a,_,i) => a + ((ST.quiz[i]||{}).pts || 0), 0);
+  function renderQuiz(){
+    const answered = QUIZ.filter((_,i) => { const s = ST.quiz[i]; return s && (s.ok || s.tries >= 2); }).length;
+    $('cntQuiz').textContent = `${answered}/12`;
+    $('quizList').innerHTML = QUIZ.map((Q,i) => {
+      const s = ST.quiz[i] || { tries:0, ok:false, pts:0 };
+      const closed = s.ok || s.tries >= 2;
+      let body;
+      if (Q.opts) body = `<div class="opts" role="radiogroup">${Q.opts.map((o,j) => `<label><input type="radio" name="q${i}" value="${j}" ${closed?'disabled':''} ${s.last==j?'checked':''}><span>${esc(o)}</span></label>`).join('')}</div>`;
+      else body = `<div class="answer"><input type="text" inputmode="decimal" id="qn${i}" ${closed?'disabled':''} value="${s.last!==undefined?esc(s.last):''}" aria-label="Resposta numérica"></div>`;
+      const fb = s.ok ? `<span class="fb ok">Correto · ${fmt(s.pts,2)} XP</span>` : s.tries >= 2 ? `<span class="fb bad">Questão encerrada · 0 XP</span>` : s.tries === 1 ? `<span class="fb bad">Incorreto. Última tentativa vale 1,25 XP.</span>` : '';
+      return `<article class="q ${s.ok?'done':closed?'lost':''}"><span class="src">${i+1}. ${esc(Q.src)}</span><p>${esc(Q.q)}</p>${body}
+        <div class="inline">${closed?'':`<button class="btn sm" type="button" data-q="${i}">Responder</button>`}${fb}</div>
+        ${closed?`<p class="explain">${esc(Q.ex)}</p>`:''}</article>`;
+    }).join('');
+    $('quizList').querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => answerQuiz(Number(b.dataset.q))));
+    renderXP(); renderSummary();
+  }
+  function answerQuiz(i){
+    const Q = QUIZ[i], s = ST.quiz[i] || { tries:0, ok:false, pts:0 };
+    let v, ok;
+    if (Q.opts){ const sel = document.querySelector(`input[name=q${i}]:checked`); if (!sel) { toast('Escolha uma alternativa'); return; } v = Number(sel.value); ok = v === Q.a; }
+    else { v = parseNum($('qn'+i).value); if (!Number.isFinite(v)) { toast('Digite um número'); return; } ok = Math.abs(v - Q.num) <= Q.tol; }
+    s.last = Q.opts ? v : String(v);
+    if (ok){ s.ok = true; s.pts = s.tries === 0 ? 2.5 : 1.25; } s.tries++;
+    ST.quiz[i] = s; save(); renderQuiz(); pushPresence();
+    if (ok) toast(`+${fmt(s.pts,2)} XP`);
+  }
+
+  // ================= XP, nível e medalhas =================
+  const LEVELS = [[0,'Estagiário'],[20,'Operador de painel'],[45,'Técnico de instrumentação'],[70,'Engenheiro de controle'],[85,'Mestre do PID']];
+  const perfPts = () => ST.best ? Math.round(ST.best.total * 0.35 * 10)/10 : 0;
+  const xpTotal = () => Math.round((perfPts() + misTotal() + quizPts())*10)/10;
+  const levelOf = xp => { let L = LEVELS[0]; for (const l of LEVELS) if (xp >= l[0]) L = l; return L; };
+  function renderXP(){
+    const xp = xpTotal(), L = levelOf(xp), nx = LEVELS.find(l => l[0] > xp);
+    $('xpVal').textContent = fmt(xp); $('lvlName').textContent = L[1];
+    $('xpBar').style.width = (xp/90*100).toFixed(1) + '%';
+    $('lvlNext').textContent = nx ? `Próximo nível em ${fmt(nx[0]-xp)} XP` : 'Nível máximo';
+    $('xpParts').textContent = `D ${fmt(perfPts())} · M ${misTotal()} · Q ${fmt(quizPts(),1)}`;
+    const b = [];
+    if (ST.best){ const [c,n] = medal(ST.best.total); if (c !== 'none') b.push(`<span class="badge ${c}">${n}</span>`); }
+    MIS.forEach(m => b.push(`<span class="badge ${misDone(m)?'on':''}" title="${esc(m.title)}">M${m.id}</span>`));
+    if (quizPts() >= 30) b.push('<span class="badge on">Quiz perfeito</span>');
+    $('badges').innerHTML = b.join('');
+  }
+  function renderSummary(){
+    const rows = [
+      ['Desempenho do controlador', 'Melhor rodada oficial × 0,35', `${fmt(perfPts())} / 35`],
+      ['Missões de exploração', 'Zona morta, atraso, P, PI e windup', `${misTotal()} / 25`],
+      ['Questionário', '12 questões das aulas 25–28', `${fmt(quizPts(),2)} / 30`],
+      ['Reflexão', 'Corrigida pela professora', '— / 10'],
+      ['<strong>Total automático</strong>', '', `<strong>${fmt(xpTotal())} / 90</strong>`],
+    ];
+    $('sumBody').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="num">${r[2]}</td></tr>`).join('');
+  }
+
+  // ================= Relatório e verificação =================
+  const SALT = 'LIC101|IFSul|Autin|v1';
+  function cyrb53(str, seed = 0){
+    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0, ch; i < str.length; i++){ ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36).toUpperCase().padStart(11,'0');
+  }
+  const codeOf = payload => { const h = cyrb53(JSON.stringify(payload) + SALT); return 'NV-' + h.slice(0,4) + '-' + h.slice(4,8); };
+  const b64 = s => btoa(unescape(encodeURIComponent(s)));
+  const unb64 = s => decodeURIComponent(escape(atob(s)));
+  function buildPayload(){
+    const b = ST.best;
+    return { v:1, nome:ST.id.nome.trim(), mat:ST.id.mat.trim(), ape:ST.id.ape.trim(), quando:new Date().toISOString(),
+      des: b ? { nota:b.total, pts:perfPts(), tune:b.tune, raw:Object.fromEntries(Object.entries(b.raw).map(([k,v]) => [k, Math.round(v*100)/100])), em:b.at } : null,
+      tent: ST.attempts,
+      mis: MIS.map(m => ({ id:m.id, ok:!!misDone(m), pts:misPts(m), resp:m.ans ? ST.mis[m.ans] : null })),
+      quiz: QUIZ.map((_,i) => { const s = ST.quiz[i] || {}; return { ok:!!s.ok, t:s.tries||0, pts:s.pts||0 }; }),
+      totMis: misTotal(), totQuiz: quizPts(), total: xpTotal(),
+      ref1: ST.ref.r1.trim(), ref2: ST.ref.r2.trim() };
+  }
+  function reportText(p, code){
+    const T = p.des ? p.des.tune : null;
+    const L = [
+      'RELATÓRIO — Desafio de Nível LIC-101',
+      `Nome: ${p.nome}`, `Matrícula: ${p.mat}`, `Apelido: ${p.ape}`, `Gerado em: ${new Date(p.quando).toLocaleString('pt-BR')}`, '',
+      `DESEMPENHO (melhor de ${p.tent} tentativa(s)): ${p.des ? fmt(p.des.nota)+'/100 → '+fmt(p.des.pts)+'/35' : 'sem rodada oficial concluída → 0/35'}`,
+      T ? `  Kp=${T.Kp} Ki=${T.Ki} Kd=${T.Kd} Bias=${T.bias}% Ts=${T.Ts*1000}ms AntiWindup=${T.aw?'sim':'não'}` : '',
+      p.des ? `  IAE=${fmt(p.des.raw.iae,0)} cm·s · sobressinal=${fmt(p.des.raw.os)}% · acomodação=${fmt(p.des.raw.ts,0)} s · erro regime=${fmt(p.des.raw.ess,2)} cm · desvio vazamento=${fmt(p.des.raw.dist,2)} cm · suavidade=${fmt(p.des.raw.smooth,1)} %/s` : '',
+      '', `MISSÕES: ${p.totMis}/25`,
+      ...p.mis.map(m => `  M${m.id} ${MIS[m.id-1].title}: ${m.ok ? m.pts+' XP' : 'pendente'}${m.resp!==null && m.resp!==undefined ? ' (resposta: '+m.resp+')' : ''}`),
+      '', `QUESTIONÁRIO: ${fmt(p.totQuiz,2)}/30`,
+      '  ' + p.quiz.map((q,i) => `Q${i+1}:${q.ok ? (q.pts===2.5?'✓':'½') : (q.t>=2?'✗':'–')}`).join(' '),
+      '', `TOTAL AUTOMÁTICO: ${fmt(p.total)}/90 (+ reflexão, até 10)`, '',
+      'REFLEXÃO 1 — ganhos e termos:', p.ref1 || '(em branco)', '',
+      'REFLEXÃO 2 — comparação com PID_Compact:', p.ref2 || '(em branco)', '',
+      `Código de verificação: ${code}`,
+      `DADOS:${b64(JSON.stringify(p))}`,
+    ];
+    return L.filter((l,i,a) => !(l === '' && a[i-1] === '')).join('\n');
+  }
+  $('repGen').addEventListener('click', () => {
+    if (!idOk()) { $('repStatus').textContent = 'Preencha nome, matrícula e apelido no topo da página.'; return; }
+    const p = buildPayload(), code = codeOf(p);
+    $('repCode').textContent = code; $('repText').textContent = reportText(p, code);
+    $('repOut').hidden = false; $('repCopy').hidden = false;
+    $('repStatus').textContent = p.des ? '' : 'Atenção: você ainda não concluiu uma rodada oficial.';
+  });
+  $('repCopy').addEventListener('click', async () => {
+    const txt = $('repText').textContent;
+    try { await navigator.clipboard.writeText(txt); $('repStatus').textContent = 'Texto copiado.'; }
+    catch(e){ const r = document.createRange(); r.selectNodeContents($('repText')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $('repStatus').textContent = 'Texto selecionado: use Ctrl+C.'; }
+  });
+  ['ref1','ref2'].forEach((id,i) => { $(id).value = ST.ref['r'+(i+1)]; $(id).addEventListener('input', () => { ST.ref['r'+(i+1)] = $(id).value; save(); }); });
+
+  $('verBtn').addEventListener('click', () => {
+    const txt = $('verIn').value, out = $('verOut');
+    const md = txt.match(/DADOS:([A-Za-z0-9+/=]+)/), mc = txt.match(/Código de verificação:\s*(NV-[0-9A-Z]{4}-[0-9A-Z]{4})/);
+    if (!md || !mc){ out.innerHTML = '<p class="warn">Não encontrei as linhas “Código de verificação” e “DADOS”. Cole o relatório completo.</p>'; return; }
+    let p; try { p = JSON.parse(unb64(md[1])); } catch(e){ out.innerHTML = '<p class="warn">O bloco DADOS está corrompido.</p>'; return; }
+    const ok = codeOf(p) === mc[1];
+    const nameInText = (txt.match(/Nome:\s*(.+)/)||[])[1];
+    const coherent = !nameInText || nameInText.trim() === p.nome;
+    out.innerHTML = `<p class="${ok && coherent ? 'okbox' : 'warn'}">${ok && coherent ? 'Código válido: os números conferem com os dados originais.' : 'Código NÃO confere: o relatório foi alterado depois de gerado.'}</p>
+      <div class="tablewrap"><table><tbody>
+      <tr><td>Nome · matrícula</td><td>${esc(p.nome)} · ${esc(p.mat)}</td></tr>
+      <tr><td>Desempenho</td><td class="num">${p.des ? fmt(p.des.nota)+'/100 → '+fmt(p.des.pts)+'/35' : '0/35'} · ${p.tent} tentativa(s)</td></tr>
+      <tr><td>Ganhos</td><td class="mono">${p.des ? esc(`Kp ${p.des.tune.Kp} · Ki ${p.des.tune.Ki} · Kd ${p.des.tune.Kd} · Bias ${p.des.tune.bias} · Ts ${p.des.tune.Ts*1000} ms · AW ${p.des.tune.aw?'sim':'não'}`) : '—'}</td></tr>
+      <tr><td>Missões</td><td class="num">${p.totMis}/25</td></tr>
+      <tr><td>Questionário</td><td class="num">${fmt(p.totQuiz,2)}/30</td></tr>
+      <tr><td>Total automático</td><td class="num">${fmt(p.total)}/90</td></tr>
+      <tr><td>Gerado em</td><td>${esc(new Date(p.quando).toLocaleString('pt-BR'))}</td></tr>
+      </tbody></table></div>`;
+  });
+
+  // ================= Ranking ao vivo (somente na página publicada) =================
+  let room = null, db = null, isOwner = false, rankDocs = [], onlinePids = new Set();
+  function presencePayload(){
+    return { pid: ST.pid, ape: ST.id.ape.trim().slice(0,20), xp: xpTotal(), nota: ST.best ? ST.best.total : 0, lvl: levelOf(xpTotal())[1] };
+  }
+  let presT = null;
+  function pushPresence(){ if (!room) return; clearTimeout(presT); presT = setTimeout(() => { if (ST.id.ape.trim()) room.presence(presencePayload()).catch(()=>{}); }, 400); }
+  const written = new Map(); const writing = new Set();
+  async function persistPeer(p){
+    if (!db || !isOwner) return;
+    const pr = p.presence || {};
+    const pid = String(pr.pid||'').replace(/[^a-z0-9]/gi,'').slice(0,24);
+    if (!pid || !pr.ape) return;
+    const doc = { ape:String(pr.ape).slice(0,20), xp:Number(pr.xp)||0, nota:Number(pr.nota)||0, lvl:String(pr.lvl||'').slice(0,40), em:new Date().toISOString() };
+    const sig = JSON.stringify([doc.ape, doc.xp, doc.nota, doc.lvl]);
+    if (written.get(pid) === sig || writing.has(pid)) return;
+    writing.add(pid);
+    try { await db.collection('ranking').doc(pid).set(doc); written.set(pid, sig); } catch(e){}
+    writing.delete(pid);
+  }
+  function renderRank(){
+    const map = new Map();
+    rankDocs.forEach(d => map.set(d.pid, d));
+    if (room) room.peers().forEach(p => { const pr = p.presence||{}; if (pr.pid && pr.ape) map.set(String(pr.pid), { pid:String(pr.pid), ape:String(pr.ape).slice(0,20), xp:Number(pr.xp)||0, nota:Number(pr.nota)||0, lvl:String(pr.lvl||'') }); });
+    if (ST.id.ape.trim()) map.set(ST.pid, Object.assign({ pid:ST.pid }, presencePayload()));
+    const list = [...map.values()].sort((a,b) => b.xp - a.xp || b.nota - a.nota);
+    $('rankBody').innerHTML = list.length ? list.map((r,i) => `<tr class="rank-row ${r.pid===ST.pid?'me':''}"><td class="num">${i+1}</td><td><span class="${onlinePids.has(r.pid)||r.pid===ST.pid?'online':'offline'}"></span>${esc(r.ape)}${r.pid===ST.pid?' <span class="note">(você)</span>':''}</td><td>${esc(r.lvl||'')}</td><td class="num">${fmt(r.nota)}</td><td class="num">${fmt(r.xp)}</td></tr>`).join('')
+      : `<tr><td colspan="5" class="note">Ninguém no ranking ainda. Preencha seu apelido para aparecer.</td></tr>`;
+  }
+  async function initLive(){
+    if (!window.claude || typeof window.claude.use !== 'function'){ $('rankStatus').textContent = 'Ranking ao vivo disponível só no link publicado. Aqui aparece apenas você.'; renderRank(); return; }
+    const [r, d, u] = await Promise.all([window.claude.use('room'), window.claude.use('db'), window.claude.use('user')]);
+    room = r; db = d;
+    isOwner = u ? await u.isOwner() : false;
+    $('ownerTools').hidden = !(isOwner && db);
+    if (room){
+      room.onPeers(ch => {
+        onlinePids = new Set(ch.peers.map(p => String((p.presence||{}).pid||'')).filter(Boolean));
+        if (isOwner) [...ch.joined, ...ch.updated].forEach(persistPeer);
+        renderRank();
+      }, () => { $('rankStatus').textContent = 'Conexão ao vivo indisponível.'; });
+      pushPresence();
+    }
+    if (db){
+      db.collection('ranking').onSnapshot(s => { rankDocs = s.docs.map(x => Object.assign({ pid:x.id }, x.data())); renderRank(); }, () => {});
+    }
+    $('rankStatus').textContent = room ? (db ? 'Ao vivo' : 'Ao vivo (só quem está online)') : (db ? 'Placar salvo' : 'Ranking indisponível nesta visualização.');
+    renderRank();
+  }
+  $('clearRank').addEventListener('click', () => { $('clearYes').hidden = false; $('clearStatus').textContent = 'Isso apaga o placar salvo de todos.'; });
+  $('clearYes').addEventListener('click', async () => {
+    if (!db) return; $('clearYes').hidden = true;
+    let n = 0; for (const r of rankDocs){ try { await db.collection('ranking').doc(r.pid).delete(); n++; } catch(e){} }
+    written.clear(); $('clearStatus').textContent = `${n} registro(s) apagado(s).`;
+  });
+
+  // ================= Desenho: planta =================
+  const inner = { top:62, bot:248 };
+  const yTank = h => inner.bot - clamp(h/PLANT.H,0,1)*(inner.bot-inner.top);
+  function drawPlant(){
+    const s = active, y = yTank(s.h);
+    $('water').setAttribute('y', y); $('water').setAttribute('height', Math.max(0, inner.bot - y));
+    const ys = yTank(s.sp); $('spLine').setAttribute('y1', ys); $('spLine').setAttribute('y2', ys); $('spTag').setAttribute('y', ys+4);
+    $('levTxt').textContent = fmt(s.h) + ' cm'; $('levTxt').setAttribute('y', clamp(y-10, 96, 238));
+    $('vfdHz').textContent = fmt(s.u*0.6) + ' Hz';
+    $('fPump').classList.toggle('on', s.qp > 1); $('fIn').classList.toggle('on', s.qin > 1);
+    $('pump').classList.toggle('on', s.qp > 1);
+    $('fOut').classList.toggle('on', s.qout > 1); $('fLeak').classList.toggle('on', s.qleak > 0.5);
+    $('vOut').classList.toggle('open', s.valve > 0); $('vLeak').classList.toggle('open', s.leak);
+  }
+
+  // ================= Desenho: tendência =================
+  const canvas = $('chart'), ctx = canvas.getContext('2d');
+  let colors = {}, colorsAt = -1e9;
+  function readColors(){ const cs = getComputedStyle(document.documentElement); ['--ink','--muted','--line','--water','--water-soft','--sp','--mv','--panel','--accent'].forEach(k => colors[k] = cs.getPropertyValue(k).trim()); }
+  function sizeCanvas(){ const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio||1; if (!r.width) return; canvas.width = Math.round(r.width*dpr); canvas.height = Math.round(r.height*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); }
+  new ResizeObserver(sizeCanvas).observe($('chartbox'));
+  function drawChart(){
+    const now = performance.now(); if (now - colorsAt > 1000){ readColors(); colorsAt = now; }
+    const box = canvas.getBoundingClientRect(), W = box.width, Hc = box.height; if (!W) return;
+    ctx.clearRect(0,0,W,Hc);
+    const L=46,R=44,T=10,B=28,pw=W-L-R,ph=Hc-T-B; if (pw<10||ph<10) return;
+    const s = active, hist = off ? offHist : labHist;
+    const win = off ? OFFICIAL.duration : Number($('win').value);
+    const tEnd = off ? OFFICIAL.duration : Math.max(s.t, win), tStart = tEnd - win;
+    const x = t => L + (t - tStart)/win*pw, yL = h => T + (1 - h/PLANT.H)*ph, yR = u => T + (1 - u/100)*ph;
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1; ctx.strokeStyle = colors['--line']; ctx.fillStyle = colors['--muted'];
+    for (let i=0;i<=5;i++){ const y = T + i/5*ph; ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(L+pw,y); ctx.stroke();
+      ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(String(Math.round(PLANT.H*(1-i/5))), L-6, y); ctx.textAlign='left'; ctx.fillText(String(100-i*20), L+pw+6, y); }
+    const tick = win/6; ctx.textAlign='center'; ctx.textBaseline='top';
+    for (let k = Math.ceil(tStart/tick)*tick; k <= tEnd+1e-6; k += tick){ const xx = x(k); ctx.beginPath(); ctx.moveTo(xx,T); ctx.lineTo(xx,T+ph); ctx.stroke(); ctx.fillText(Math.round(k)+' s', xx, T+ph+7); }
+    ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('cm',4,T); ctx.textAlign='right'; ctx.fillText('%',W-4,T);
+    // linha de 75 % (45 Hz)
+    ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle = colors['--mv']; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(L,yR(75)); ctx.lineTo(L+pw,yR(75)); ctx.stroke(); ctx.restore();
+    if (off){ ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle = colors['--accent']; OFFICIAL.phases.slice(1).forEach(p => { ctx.beginPath(); ctx.moveTo(x(p.t0),T); ctx.lineTo(x(p.t0),T+ph); ctx.stroke(); }); ctx.restore(); }
+    const pts = hist.filter(p => p.t >= tStart - HIST_DT); if (pts.length < 2) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(L,T,pw,ph); ctx.clip();
+    ctx.beginPath(); ctx.moveTo(x(pts[0].t), yL(0)); pts.forEach(p => ctx.lineTo(x(p.t), yL(p.pv))); ctx.lineTo(x(pts[pts.length-1].t), yL(0)); ctx.closePath(); ctx.fillStyle = colors['--water-soft']; ctx.fill();
+    const line = (k, c, w, yf, dash, stepped) => { ctx.beginPath(); ctx.setLineDash(dash||[]); ctx.strokeStyle = c; ctx.lineWidth = w;
+      pts.forEach((p,i) => { if (!i) ctx.moveTo(x(p.t), yf(p[k])); else { if (stepped) ctx.lineTo(x(p.t), yf(pts[i-1][k])); ctx.lineTo(x(p.t), yf(p[k])); } }); ctx.stroke(); ctx.setLineDash([]); };
+    line('u', colors['--mv'], 1.3, yR); line('sp', colors['--sp'], 1.8, yL, [6,4], true); line('pv', colors['--water'], 2.2, yL);
+    ctx.restore();
+    const lp = pts[pts.length-1]; ctx.beginPath(); ctx.arc(x(lp.t), yL(lp.pv), 4, 0, Math.PI*2); ctx.fillStyle = colors['--water']; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = colors['--panel']; ctx.stroke();
+  }
+
+  // ================= Faceplate =================
+  function updateFace(){
+    const s = active;
+    $('clock').textContent = 't = ' + Math.floor(s.t) + ' s';
+    $('liveErr').textContent = `e = ${fmt(s.sp - s.pv,2)} cm · MV ${fmt(s.u)} %`;
+    $('spVal').textContent = fmt(s.sp); $('pvVal').textContent = fmt(s.pv); $('mvVal').textContent = fmt(s.u);
+    $('pvRaw').textContent = 'IW ' + Math.round(clamp(s.pv/PLANT.H,0,1)*PLANT.rawMax);
+    $('mvRaw').textContent = 'QW ' + Math.round(s.u/100*PLANT.rawMax);
+    $('mvBar').style.width = s.u + '%';
+    $('manHz').textContent = fmt((s.mode==='manual'?s.uMan:s.u)*0.6) + ' Hz';
+    if (s.mode === 'auto' && !off){ $('manRange').value = s.u.toFixed(1); $('manNum').value = s.u.toFixed(1); }
+    const T = s.terms;
+    $('terms').innerHTML = s.mode === 'auto' ? `<span>Bias ${fmt(s.tune.bias)} %</span><span>P ${fmt(T.P)} %</span><span>I ${fmt(T.I)} %</span><span>D ${fmt(T.D)} %</span>` : '<span>Modo manual: integral em rastreamento</span>';
+    const al = [];
+    if (s.overflow) al.push('<span class="pill alarm">TRANSBORDANDO</span>'); else if (s.h > 0.9*PLANT.H) al.push('<span class="pill alarm">Nível alto</span>');
+    if (s.h < 0.05*PLANT.H) al.push('<span class="pill alarm">Tanque quase vazio</span>');
+    if (s.u > 0 && s.u*0.6 <= PLANT.f0 && s.qp < 0.5) al.push('<span class="pill alarm">Bomba sem vazão</span>');
+    if (s.mode==='auto' && (s.u >= 99.95)) al.push('<span class="pill alarm">MV saturada</span>');
+    if (off) al.unshift('<span class="pill ok">RODADA OFICIAL</span>');
+    if (!al.length) al.push('<span class="pill ok">Normal</span>');
+    const html = al.join(''); if ($('alarms').innerHTML !== html) $('alarms').innerHTML = html;
+    if (off){
+      const p = off.t / OFFICIAL.duration; $('offProg').style.width = (p*100).toFixed(1) + '%';
+      const i = offEval.phaseAt(off.t); document.querySelectorAll('.phase').forEach((el,j) => el.classList.toggle('now', j===i));
+    }
+  }
+
+  // ================= Laço principal =================
+  let lastFrame = performance.now(), uiAcc = 0, simAcc = 0;
+  function frame(now){
+    const realDt = Math.min(0.1, (now - lastFrame)/1000); lastFrame = now;
+    if (running){
+      simAcc += realDt * Number($('speed').value);
+      while (simAcc >= DT){
+        const d = DT; simAcc -= DT;
+        if (off){
+          const i = offEval.phaseAt(off.t); if (i >= 0){ off.sp = OFFICIAL.phases[i].sp; off.leak = OFFICIAL.phases[i].leak; }
+          off.step(d); offEval.sample(off, d);
+          histAcc += d; if (histAcc >= HIST_DT){ histAcc = 0; offHist.push({t:off.t, sp:off.sp, pv:off.pv, u:off.u}); }
+          if (off.t >= OFFICIAL.duration - 1e-9){ simAcc = 0; endOfficial(false); break; }
+        } else {
+          lab.step(d);
+          histAcc += d; if (histAcc >= HIST_DT){ histAcc = 0; labHist.push({t:lab.t, sp:lab.sp, pv:lab.pv, u:lab.u}); if (labHist.length > 1400) labHist.shift(); checkMissionsTick(); }
+        }
+      }
+    }
+    drawPlant(); drawChart();
+    uiAcc += realDt; if (uiAcc > 0.1){ uiAcc = 0; updateFace(); }
+    requestAnimationFrame(frame);
+  }
+
+  // ================= Início =================
+  renderIdent(); renderMissions(); renderQuiz(); renderXP(); renderSummary(); renderMode();
+  if (ST.best) renderResult(ST.best, false);
+  showTab(TABS.includes(ST.tab) ? ST.tab : 'lab');
+  sizeCanvas();
+  initLive();
+  requestAnimationFrame(t => { lastFrame = t; frame(t); });
+})();
+</script>
+
+</body></html>

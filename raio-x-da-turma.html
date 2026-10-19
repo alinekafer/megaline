@@ -1,0 +1,402 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Raio-X da Turma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..900&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: relatório estatístico de pesquisa de campo; a turma (azul) sempre ao lado do Brasil (laranja). */
+:root{
+  --ground:#f3f4f6; --card:#ffffff; --ink:#1b1f3b; --muted:#5b6078; --line:#dfe2ea;
+  --accent:#1b1f3b; --accent-ink:#ffffff; --turma:#2a78d6; --brasil:#eb6834; --soft:#eef3fb; --warn:#b5482a;
+  --display:"Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#11131c; --card:#1a1d29; --ink:#e8eaf3; --muted:#a3a8bf; --line:#2c3042;
+  --accent:#e8eaf3; --accent-ink:#11131c; --turma:#3987e5; --brasil:#d95926; --soft:#1d2536; --warn:#f08a6c; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --ground:#11131c; --card:#1a1d29; --ink:#e8eaf3; --muted:#a3a8bf; --line:#2c3042;
+  --accent:#e8eaf3; --accent-ink:#11131c; --turma:#3987e5; --brasil:#d95926; --soft:#1d2536; --warn:#f08a6c; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:18px}
+h1,h2,h3{font-family:var(--display);font-stretch:80%;margin:0;line-height:1.05;text-wrap:balance}
+h1{font-weight:900;font-size:clamp(2.2rem,6vw,3.6rem);letter-spacing:-.01em}
+h2{font-weight:800;font-size:clamp(1.3rem,3vw,1.7rem)}
+h3{font-weight:700;font-size:1.15rem;font-stretch:90%}
+p{margin:0}
+.label{font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--turma);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:10px 16px;font-weight:700}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.small{padding:6px 12px;font-size:.88rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-weight:600;font-size:.92rem}
+.tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.banner{border-left:4px solid var(--brasil);background:var(--card);padding:10px 14px;border-radius:6px;font-size:.95rem}
+.stats{display:flex;gap:28px;flex-wrap:wrap;align-items:end}
+.stat .label{display:block}
+.stat b{display:block;font-family:var(--display);font-weight:900;font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));gap:16px}
+.bars{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:10px;align-items:center}
+.bar-row .opt{font-size:.92rem;line-height:1.25}
+.bar-pair{display:grid;gap:3px}
+.track{position:relative;height:16px}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;min-width:2px}
+.fill.t{background:var(--turma)} .fill.b{background:var(--brasil)}
+.val{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:.78rem;color:var(--ink);padding-left:6px;white-space:nowrap}
+.track:hover .fill{filter:brightness(1.08)}
+.ref{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.ask{font-size:.95rem;background:var(--soft);border-radius:8px;padding:10px 12px}
+.ask::before{content:"Para discutir: ";font-weight:700}
+.hidden-note{color:var(--muted);font-style:italic}
+/* urna */
+.urna{max-width:760px;margin:0 auto;width:100%;display:grid;gap:16px}
+.screen{background:var(--card);border:3px solid var(--ink);border-radius:14px;padding:22px;display:grid;gap:16px;min-height:420px;align-content:start}
+.opts{display:grid;gap:10px}
+.optbtn{text-align:left;border:2px solid var(--line);background:var(--card);border-radius:10px;padding:14px 16px;font-size:1.08rem;font-weight:600;display:flex;gap:12px;align-items:center}
+.optbtn kbd{font-family:var(--mono);font-size:.85rem;border:1px solid var(--line);border-radius:4px;padding:1px 7px;color:var(--muted)}
+.optbtn:hover,.optbtn.sel{border-color:var(--turma);background:var(--soft)}
+.keys{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.key{border:0;border-radius:8px;padding:14px 22px;font-weight:800;font-family:var(--display);letter-spacing:.04em;font-size:1.05rem}
+.key.branco{background:#f4f4f4;color:#111;border:1px solid #bbb}
+.key.corrige{background:#e8742c;color:#111}
+.key.confirma{background:#2e9a4b;color:#fff}
+.fim{font-family:var(--display);font-weight:900;font-size:clamp(5rem,20vw,10rem);text-align:center;line-height:1;letter-spacing:.04em}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--turma)}
+textarea,input[type=text],input[type=url],input[type=password]{width:100%;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:.85rem}
+textarea{min-height:180px}
+.msg{font-size:.92rem}
+.msg.err{color:var(--warn)}
+.qr{background:#fff;padding:10px;border-radius:8px;width:200px}
+.qr img,.qr canvas{width:180px!important;height:180px!important}
+details summary{cursor:pointer;font-weight:700}
+table{border-collapse:collapse;font-size:.9rem;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// ------------------------------------------------------------------ questionário e dados de referência
+const Q = [
+  { id:"cor", t:"Cor ou raça (classificação do IBGE)", curto:"Cor ou raça",
+    ops:["Branca","Preta","Parda","Amarela","Indígena","Prefiro não responder"], semComparar:["Prefiro não responder"],
+    ref:{ Branca:43.5, Preta:10.2, Parda:45.3, Amarela:0.4, "Indígena":0.6 }, fonte:"Brasil, Censo 2022 (IBGE). No Rio Grande do Sul, 78,4% da população se declarou branca.",
+    ask:"A turma se parece mais com o retrato do Brasil ou com o do Rio Grande do Sul? Que história de ocupação do estado ajuda a explicar a diferença?" },
+  { id:"rel", t:"Religião", curto:"Religião",
+    ops:["Católica","Evangélica","Espírita","Umbanda ou candomblé","Outra","Sem religião","Prefiro não responder"], semComparar:["Prefiro não responder","Outra"],
+    ref:{ "Católica":56.7, "Evangélica":26.9, "Espírita":1.8, "Umbanda ou candomblé":1.0, "Sem religião":9.3 }, fonte:"Brasil, pessoas de 10 anos ou mais, Censo 2022 (IBGE). Outras religiões e não declarados somam o restante.",
+    ask:"Os jovens da turma seguem a tendência nacional de queda dos católicos e crescimento de evangélicos e sem religião? O que muda entre gerações?" },
+  { id:"esc", t:"Maior escolaridade entre as pessoas responsáveis por você", curto:"Escolaridade dos responsáveis",
+    ops:["Fundamental incompleto ou sem estudo","Fundamental completo","Médio completo","Superior completo ou pós-graduação","Não sei"], semComparar:["Não sei"],
+    destaques:[ {rot:"ao menos ensino médio completo", ops:["Médio completo","Superior completo ou pós-graduação"], br:56.0},
+                {rot:"superior completo", ops:["Superior completo ou pós-graduação"], br:20.5} ],
+    fonte:"Brasil, pessoas de 25 anos ou mais, PNAD Contínua Educação 2024 (IBGE): 56% concluíram ao menos o ensino médio e 20,5% têm superior completo.",
+    ask:"A comparação é justa? A turma informou o responsável com MAIS estudo; o IBGE mede cada adulto. Como isso muda a leitura dos números?" },
+  { id:"trab", t:"Você trabalha ou faz algum serviço para ganhar dinheiro?", curto:"Trabalho",
+    ops:["Não","Sim, bicos ou trabalho informal","Sim, estágio ou jovem aprendiz","Sim, ajudo no negócio ou na roça da família"],
+    fonte:"Em 2024, a necessidade de trabalhar foi o principal motivo (42%) para jovens de 14 a 29 anos não terem concluído o ensino médio (PNAD Contínua Educação 2024, IBGE).",
+    ask:"Para quem trabalha, o que muda na rotina de estudo? Escola e trabalho competem ou se complementam?" },
+  { id:"desl", t:"Quanto tempo você leva de casa até o campus?", curto:"Deslocamento",
+    ops:["Até 15 minutos","De 16 a 30 minutos","De 31 minutos a 1 hora","Mais de 1 hora"],
+    ask:"Tempo de deslocamento é tempo de estudo e descanso perdido. Quem mora mais longe, e por quê? O que isso diz sobre a cidade?" },
+  { id:"dom", t:"Na sua casa, quem faz a maior parte das tarefas domésticas?", curto:"Tarefas domésticas",
+    ops:["Uma mulher adulta (mãe, avó, tia...)","Um homem adulto (pai, avô, tio...)","Dividido de forma parecida","Eu","Outra pessoa"],
+    fonte:"Em 2022, as mulheres dedicaram em média 21,3 horas por semana a afazeres domésticos e cuidados; os homens, 11,7 horas (PNAD Contínua, IBGE).",
+    ask:"A turma reproduz a divisão sexual do trabalho que o IBGE mede? Quem de vocês respondeu \"Eu\", e o que isso significa para o tempo de estudo?" },
+  { id:"redes", t:"Quantas horas por dia você passa em redes sociais?", curto:"Redes sociais",
+    ops:["Menos de 1 hora","De 1 a 3 horas","De 3 a 5 horas","Mais de 5 horas"],
+    fonte:"Em 2024, 92,4% dos estudantes brasileiros usaram a internet, e o celular foi o principal aparelho de acesso (PNAD Contínua TIC 2024, IBGE).",
+    ask:"Quem decide o que aparece nas redes de vocês? (Conecte com o Simulador de Bolha.)" },
+  { id:"futuro", t:"Depois do curso, o que você pretende fazer?", curto:"Planos",
+    ops:["Fazer faculdade","Trabalhar na área técnica","Trabalhar e estudar ao mesmo tempo","Ainda não sei"],
+    ask:"Os planos variam conforme a escolaridade dos responsáveis ou a necessidade de trabalhar? É possível investigar isso sem expor ninguém?" }
+];
+const MIN_N = 5;          // abaixo disso, resultados ficam ocultos para proteger o anonimato
+const PIN = "sociologia";  // senha para abrir o painel a partir da urna
+
+// ------------------------------------------------------------------ armazenamento local
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem("raiox-"+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem("raiox-"+k, JSON.stringify(v)); }catch(e){} }
+};
+let urna = store.get("urna", []);
+let fonte = store.get("fonte", "exemplo");   // exemplo | urna | planilha | arquivo
+let csvUrl = store.get("csvUrl", "");
+let formUrl = store.get("formUrl", "");
+let arquivo = [];        // respostas importadas de arquivo nesta sessão
+let planilha = [];       // respostas lidas da planilha publicada
+let planilhaMsg = "";
+if(fonte==="arquivo") fonte="exemplo";
+let tela = location.hash.replace("#","") || "painel";
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = (a,b) => b ? a/b*100 : 0;
+const fmt = v => (Math.round(v*10)/10).toLocaleString("pt-BR",{minimumFractionDigits: v<10 && v%1 ? 1 : 0, maximumFractionDigits:1});
+
+// ------------------------------------------------------------------ dados de exemplo (fictícios)
+function exemplo(){
+  let s = 7; const r = () => (s = (s*16807) % 2147483647) / 2147483647;
+  const pick = w => { const tot=w.reduce((a,b)=>a+b,0); let x=r()*tot; for(let i=0;i<w.length;i++){ x-=w[i]; if(x<=0) return i; } return w.length-1; };
+  const W = { cor:[22,3,6,0,1,1], rel:[12,9,1,1,1,8,1], esc:[6,4,13,7,3], trab:[21,6,3,3], desl:[8,12,9,4], dom:[22,2,6,2,1], redes:[3,13,11,6], futuro:[11,5,12,5] };
+  return Array.from({length:33}, () => Object.fromEntries(Q.map(q => [q.id, q.ops[pick(W[q.id])]])));
+}
+function respostas(){
+  if(fonte==="urna") return urna;
+  if(fonte==="planilha") return planilha;
+  if(fonte==="arquivo") return arquivo;
+  return exemplo();
+}
+
+// ------------------------------------------------------------------ CSV (Google Forms)
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cell); cell=""; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c;
+  }
+  if(cell!==""||row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>r.some(x=>x.trim()!==""));
+}
+const normT = s => (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+function csvParaRespostas(text){
+  const rows=parseCSV(text); if(rows.length<1) return {ok:false, msg:"O arquivo está vazio."};
+  const head=rows[0].map(normT);
+  const col={}; Q.forEach(q=>{ const i=head.findIndex(h=>h===normT(q.t)||h.startsWith(normT(q.t).slice(0,30))); if(i>=0) col[q.id]=i; });
+  const achadas=Object.keys(col).length;
+  if(!achadas) return {ok:false, msg:"Não encontrei as perguntas do Raio-X nas colunas. Use o formulário criado pelo script desta página."};
+  const out=rows.slice(1).map(r=>{ const o={}; Q.forEach(q=>{ if(col[q.id]!==undefined){ const v=(r[col[q.id]]||"").trim(); const m=q.ops.find(op=>normT(op)===normT(v)); if(m) o[q.id]=m; } }); return o; });
+  return {ok:true, dados:out, msg:`${out.length} respostas lidas; ${achadas} de ${Q.length} perguntas encontradas.`};
+}
+let poll=null;
+async function lerPlanilha(){
+  if(!csvUrl) return;
+  try{
+    const res = await fetch(csvUrl, {cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const r = csvParaRespostas(await res.text());
+    if(r.ok){ planilha=r.dados; planilhaMsg="Atualizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+" · "+r.msg; }
+    else planilhaMsg=r.msg;
+  }catch(e){
+    planilhaMsg="Não consegui ler a planilha. Confira se ela foi publicada na Web como CSV. Dentro da prévia do Claude, a leitura ao vivo é bloqueada: use \"Importar arquivo\" ou publique esta página num endereço próprio.";
+  }
+  if(tela==="painel") render();
+}
+function iniciaPoll(){ clearInterval(poll); if(fonte==="planilha"&&csvUrl){ lerPlanilha(); poll=setInterval(lerPlanilha,15000); } }
+
+// ------------------------------------------------------------------ painel
+function contagem(dados,q){
+  const c=Object.fromEntries(q.ops.map(o=>[o,0])); let n=0;
+  dados.forEach(r=>{ if(r[q.id]&&c[r[q.id]]!==undefined){ c[r[q.id]]++; n++; } });
+  return {c,n};
+}
+function cartao(q,dados){
+  const {c,n}=contagem(dados,q);
+  let html=`<article class="card" aria-labelledby="h-${q.id}"><div class="top"><h3 id="h-${q.id}">${esc(q.t)}</h3><span class="label">${n} resp.</span></div>`;
+  if(n<MIN_N){ return html+`<p class="hidden-note">Resultado oculto até haver ao menos ${MIN_N} respostas, para proteger o anonimato.</p></article>`; }
+  html+=`<div class="bars">`;
+  q.ops.forEach(o=>{
+    const usaComp = q.ref && q.ref[o]!==undefined;
+    const vt = pct(c[o],n);
+    html+=`<div class="bar-row"><span class="opt">${esc(o)}</span><div class="bar-pair">
+      <div class="track" title="Turma: ${fmt(vt)}% (${c[o]} de ${n})"><span class="fill t" style="width:${vt*0.85}%"></span><span class="val" style="left:${vt*0.85}%">${fmt(vt)}% <span style="color:var(--muted)">(${c[o]})</span></span></div>
+      ${usaComp?`<div class="track" title="Brasil: ${fmt(q.ref[o])}%"><span class="fill b" style="width:${q.ref[o]*0.85}%"></span><span class="val" style="left:${q.ref[o]*0.85}%">${fmt(q.ref[o])}%</span></div>`:""}
+    </div></div>`;
+  });
+  html+=`</div>`;
+  if(q.destaques){
+    html+=`<div class="stats">`+q.destaques.map(d=>{ const nn=q.ops.filter(o=>!(q.semComparar||[]).includes(o)).reduce((a,o)=>a+c[o],0); const v=pct(d.ops.reduce((a,o)=>a+c[o],0),nn);
+      return `<div class="stat"><span class="label">${esc(d.rot)} (entre quem soube responder)</span><b style="color:var(--turma)">${fmt(v)}%</b><span style="font-size:.9rem">turma · Brasil: <b style="display:inline;font-size:1rem;color:var(--ink)">${fmt(d.br)}%</b></span></div>`; }).join("")+`</div>`;
+  }
+  if(q.fonte) html+=`<p class="ref">${esc(q.fonte)}</p>`;
+  html+=`<p class="ask">${esc(q.ask)}</p></article>`;
+  return html;
+}
+function painel(){
+  const dados=respostas();
+  const nomeFonte={exemplo:"Dados de exemplo (fictícios)", urna:"Urna deste computador", planilha:"Planilha do Google Forms (ao vivo)", arquivo:"Arquivo importado"}[fonte];
+  app.innerHTML=`
+    <header class="top"><div style="display:grid;gap:6px"><span class="label">Sociologia · pesquisa anônima da turma</span><h1>Raio-X da Turma</h1>
+      <p style="max-width:60ch">A turma responde a um questionário anônimo e se compara com os dados oficiais do Brasil.</p></div>
+      <nav class="tabs" aria-label="Telas"><button class="tab" aria-pressed="true">Painel</button><a class="tab" href="#urna" style="text-decoration:none">Urna</a><a class="tab" href="#configurar" style="text-decoration:none">Coletar respostas</a></nav></header>
+    ${fonte==="exemplo"?`<p class="banner"><b>Você está vendo dados fictícios de exemplo.</b> Para usar com a turma, escolha em "Coletar respostas" a urna deste computador ou o Google Forms.</p>`:""}
+    <section class="card"><div class="stats">
+      <div class="stat"><span class="label">respostas</span><b>${dados.length}</b></div>
+      <div class="stat" style="min-width:0"><span class="label">fonte</span><span style="font-weight:700">${esc(nomeFonte)}</span>${fonte==="planilha"?`<br><span class="label" style="text-transform:none;letter-spacing:0">${esc(planilhaMsg||"Lendo a planilha...")}</span>`:""}</div>
+      <div class="legend" style="margin-left:auto"><span><i style="background:var(--turma)"></i>Turma</span><span><i style="background:var(--brasil)"></i>Brasil (IBGE)</span></div>
+    </div></section>
+    <section class="grid">${Q.map(q=>cartao(q,dados)).join("")}</section>
+    <details class="card"><summary>Tabela com todos os números</summary>
+      <div style="overflow-x:auto">${Q.map(q=>{ const {c,n}=contagem(dados,q); return `<table style="margin-top:10px"><thead><tr><th>${esc(q.curto)}</th><th>Respostas</th><th>% da turma</th><th>% Brasil</th></tr></thead><tbody>${q.ops.map(o=>`<tr><td>${esc(o)}</td><td class="n">${n<MIN_N?"—":c[o]}</td><td class="n">${n<MIN_N?"—":fmt(pct(c[o],n))}</td><td class="n">${q.ref&&q.ref[o]!==undefined?fmt(q.ref[o]):"—"}</td></tr>`).join("")}</tbody></table>`; }).join("")}</div>
+</details>
+    <section class="card"><h3>Cuidados de método para conversar com a turma</h3>
+      <ul style="margin:0;padding-left:1.2em;display:grid;gap:4px">
+        <li>Uma turma não é uma amostra do Brasil. A comparação mostra contrastes, não erros.</li>
+        <li>Cor ou raça é autodeclarada, como no Censo. Ninguém classifica ninguém.</li>
+        <li>Percentuais com poucas respostas mudam muito com uma pessoa só. Olhem também os números absolutos.</li>
+        <li>A pesquisa é anônima e nenhuma pergunta pode identificar alguém. Resultados com menos de ${MIN_N} respostas ficam ocultos.</li>
+      </ul></section>`;
+}
+
+// ------------------------------------------------------------------ urna (cabine de votação)
+let voto=null, passo=0;
+function bip(longo){
+  try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const t=ctx.currentTime;
+    const seq = longo ? [[0,.12],[.14,.12],[.28,.12],[.42,.12],[.56,.5]] : [[0,.08]];
+    seq.forEach(([d,dur])=>{ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=longo?1050:880; o.type="square"; g.gain.value=.06; o.connect(g); g.connect(ctx.destination); o.start(t+d); o.stop(t+d+dur); });
+  }catch(e){}
+}
+function urnaTela(){
+  const n=urna.length;
+  if(voto===null){
+    app.innerHTML=`<div class="urna">
+      <div class="top"><div><span class="label">Raio-X da Turma</span><h1>Cabine de votação</h1></div><span class="label">${n} ${n===1?"voto":"votos"} nesta urna</span></div>
+      <div class="screen" style="align-content:center;justify-items:center;text-align:center">
+        <h2>Sua resposta é anônima.</h2>
+        <p style="max-width:44ch">São ${Q.length} perguntas rápidas. Ninguém vê o que você escolhe, e os resultados só aparecem juntos, para a turma toda.</p>
+        <button class="btn" id="go" type="button" style="font-size:1.2rem;padding:14px 26px">Começar a votar</button>
+      </div>
+      <div class="row" style="justify-content:space-between"><span class="label">Use o mouse, o toque ou as teclas numéricas.</span><button class="btn ghost small" id="sair" type="button">Abrir o painel (professor)</button></div></div>`;
+    document.getElementById("go").onclick=()=>{ voto={}; passo=0; urnaTela(); };
+    document.getElementById("sair").onclick=pedePin;
+    return;
+  }
+  if(passo<Q.length){
+    const q=Q[passo];
+    app.innerHTML=`<div class="urna"><div class="progress" aria-hidden="true"><i style="width:${passo/Q.length*100}%"></i></div>
+      <div class="screen"><span class="label">Pergunta ${passo+1} de ${Q.length}</span><h2>${esc(q.t)}</h2>
+        <div class="opts">${q.ops.map((o,i)=>`<button class="optbtn ${voto[q.id]===o?"sel":""}" data-i="${i}" type="button"><kbd>${i+1}</kbd>${esc(o)}</button>`).join("")}</div></div>
+      <div class="keys"><button class="key corrige" id="volta" type="button" ${passo===0?"disabled":""}>CORRIGE</button></div></div>`;
+    app.querySelectorAll(".optbtn").forEach(b=>b.onclick=()=>escolhe(+b.dataset.i));
+    document.getElementById("volta").onclick=()=>{ if(passo>0){ passo--; urnaTela(); } };
+    return;
+  }
+  // revisão
+  app.innerHTML=`<div class="urna"><div class="progress" aria-hidden="true"><i style="width:100%"></i></div>
+    <div class="screen"><span class="label">Confira o seu voto</span>
+      <table><tbody>${Q.map(q=>`<tr><td>${esc(q.curto)}</td><td><b>${esc(voto[q.id])}</b></td></tr>`).join("")}</tbody></table></div>
+    <div class="keys"><button class="key corrige" id="corrige" type="button">CORRIGE</button><button class="key confirma" id="confirma" type="button">CONFIRMA</button></div></div>`;
+  document.getElementById("corrige").onclick=()=>{ passo=0; urnaTela(); };
+  document.getElementById("confirma").onclick=confirma;
+  document.getElementById("confirma").focus();
+}
+function escolhe(i){ const q=Q[passo]; if(!q||i<0||i>=q.ops.length) return; voto[q.id]=q.ops[i]; bip(false); passo++; urnaTela(); }
+function confirma(){
+  urna.push(voto); store.set("urna",urna); voto=null; bip(true);
+  app.innerHTML=`<div class="urna"><div class="screen" style="align-content:center"><div class="fim">FIM</div><p style="text-align:center">Obrigado! Chame a próxima pessoa.</p></div></div>`;
+  setTimeout(()=>{ if(tela==="urna") urnaTela(); }, 2500);
+}
+function pedePin(){
+  app.innerHTML=`<div class="urna"><div class="screen"><h2>Área do professor</h2><p>Digite a senha para sair da urna e abrir o painel.</p>
+    <form id="pf" class="row"><input id="pin" type="password" aria-label="Senha" style="flex:1 1 200px"><button class="btn" type="submit">Abrir painel</button></form><p id="pm" class="msg err"></p>
+    <button class="btn ghost small" id="volta" type="button">Voltar à urna</button></div></div>`;
+  document.getElementById("pin").focus();
+  document.getElementById("pf").onsubmit=e=>{ e.preventDefault(); if(document.getElementById("pin").value.trim().toLowerCase()===PIN){ location.hash="painel"; } else document.getElementById("pm").textContent="Senha incorreta."; };
+  document.getElementById("volta").onclick=()=>urnaTela();
+}
+document.addEventListener("keydown",e=>{
+  if(tela!=="urna"||!voto) return;
+  if(passo<Q.length && /^[1-9]$/.test(e.key)){ escolhe(+e.key-1); }
+  else if(passo>=Q.length && e.key==="Enter"){ confirma(); }
+});
+
+// ------------------------------------------------------------------ coletar respostas
+function scriptForms(){
+  const qs = JSON.stringify(Q.map(q=>({t:q.t, ops:q.ops})), null, 2);
+  return `// Raio-X da Turma: cria o formulário anônimo e a planilha de respostas.
+// 1. Acesse script.google.com, clique em "Novo projeto" e cole este código.
+// 2. Clique em Executar (função criarRaioX) e autorize com a sua conta.
+// 3. Os links aparecem no "Registro de execução".
+const PERGUNTAS = ${qs};
+
+function criarRaioX() {
+  const form = FormApp.create('Raio-X da Turma');
+  form.setDescription('Pesquisa anônima da aula de Sociologia. Não escreva seu nome em lugar nenhum.');
+  form.setCollectEmail(false);
+  try { form.setRequireLogin(false); } catch (e) {}
+  PERGUNTAS.forEach(function (p) {
+    form.addMultipleChoiceItem().setTitle(p.t).setChoiceValues(p.ops).setRequired(true);
+  });
+  const planilha = SpreadsheetApp.create('Raio-X da Turma (respostas)');
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, planilha.getId());
+  Logger.log('Link para os alunos: ' + form.getPublishedUrl());
+  Logger.log('Planilha de respostas: ' + planilha.getUrl());
+}`;
+}
+function configurar(){
+  app.innerHTML=`
+    <header class="top"><div style="display:grid;gap:6px"><span class="label">Raio-X da Turma</span><h1>Coletar respostas</h1></div>
+      <nav class="tabs"><a class="tab" href="#painel" style="text-decoration:none">Painel</a><a class="tab" href="#urna" style="text-decoration:none">Urna</a><button class="tab" aria-pressed="true">Coletar respostas</button></nav></header>
+    <section class="grid">
+      <article class="card"><span class="label">Sem celular · 1 computador</span><h2>Urna da turma</h2>
+        <p>Os alunos votam um de cada vez, como numa urna eletrônica, no computador da sala. Leva cerca de 1 minuto por pessoa. Dica: coloque o computador num canto, de costas para a turma, e chame os alunos em fila durante outra atividade.</p>
+        <p class="label">${urna.length} votos guardados neste computador</p>
+        <div class="row"><button class="btn" id="usaUrna" type="button">Usar a urna como fonte</button><a class="btn ghost" href="#urna">Abrir a cabine</a><button class="btn ghost small" id="zeraUrna" type="button">Apagar votos da urna</button></div>
+        <p class="msg" id="mUrna"></p></article>
+      <article class="card"><span class="label">Com celulares · ao vivo</span><h2>Google Forms</h2>
+        <ol style="margin:0;padding-left:1.2em;display:grid;gap:4px">
+          <li>Copie o script abaixo, cole em script.google.com e execute. Ele cria o formulário com as mesmas perguntas e a planilha.</li>
+          <li>Na planilha: Arquivo › Compartilhar › Publicar na Web › aba de respostas › formato CSV. Copie o link.</li>
+          <li>Cole o link do CSV aqui. O painel se atualiza a cada 15 segundos.</li>
+        </ol>
+        <details><summary>Script que cria o formulário</summary><textarea id="scr" readonly aria-label="Script do Google Apps Script">${esc(scriptForms())}</textarea><button class="btn ghost small" id="copiar" type="button">Copiar script</button> <span class="msg" id="mCop"></span></details>
+        <label class="label" for="csv">Link do CSV publicado</label><input id="csv" type="url" value="${esc(csvUrl)}" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+        <label class="label" for="furl">Link do formulário (para gerar o QR code dos alunos)</label><input id="furl" type="url" value="${esc(formUrl)}" placeholder="https://docs.google.com/forms/d/e/.../viewform">
+        <div class="row"><button class="btn" id="usaPlan" type="button">Usar a planilha ao vivo</button></div>
+        <div id="qrBox"></div>
+        <p class="msg">A leitura ao vivo só funciona com esta página publicada num endereço próprio (GitHub Pages, servidor do campus). Na prévia do Claude, use a opção de arquivo.</p></article>
+      <article class="card"><span class="label">Qualquer fonte · arquivo</span><h2>Importar arquivo CSV</h2>
+        <p>Baixe as respostas do Google Forms (Respostas › Baixar CSV) e selecione o arquivo aqui.</p>
+        <input id="file" type="file" accept=".csv,text/csv" aria-label="Arquivo CSV">
+        <p class="msg" id="mArq"></p></article>
+      <article class="card"><span class="label">Demonstração</span><h2>Dados de exemplo</h2>
+        <p>33 respostas fictícias, para mostrar o painel numa reunião ou testar a projeção.</p>
+        <div class="row"><button class="btn ghost" id="usaEx" type="button">Usar dados de exemplo</button></div></article>
+    </section>`;
+  const vai=f=>{ fonte=f; store.set("fonte",f); iniciaPoll(); location.hash="painel"; };
+  document.getElementById("usaUrna").onclick=()=>vai("urna");
+  document.getElementById("zeraUrna").onclick=()=>{ const b=document.getElementById("zeraUrna");
+    if(b.dataset.conf){ urna=[]; store.set("urna",urna); document.getElementById("mUrna").textContent="Votos apagados."; delete b.dataset.conf; b.textContent="Apagar votos da urna"; }
+    else { b.dataset.conf="1"; b.textContent="Clique de novo para confirmar"; } };
+  document.getElementById("usaEx").onclick=()=>vai("exemplo");
+  document.getElementById("copiar").onclick=async()=>{ const t=document.getElementById("scr"); try{ await navigator.clipboard.writeText(t.value); document.getElementById("mCop").textContent="Copiado."; }catch(e){ t.select(); document.getElementById("mCop").textContent="Texto selecionado: use Ctrl+C."; } };
+  const desenhaQR=()=>{ const box=document.getElementById("qrBox"); box.innerHTML=""; const u=document.getElementById("furl").value.trim(); if(!u) return;
+    const d=document.createElement("div"); d.className="qr"; box.appendChild(d); if(window.QRCode) new QRCode(d,{text:u,width:360,height:360,correctLevel:QRCode.CorrectLevel.M}); else d.textContent=u; };
+  document.getElementById("furl").oninput=()=>{ formUrl=document.getElementById("furl").value.trim(); store.set("formUrl",formUrl); desenhaQR(); };
+  desenhaQR();
+  document.getElementById("usaPlan").onclick=()=>{ csvUrl=document.getElementById("csv").value.trim(); store.set("csvUrl",csvUrl); if(!csvUrl){ document.getElementById("csv").focus(); return; } planilhaMsg=""; vai("planilha"); };
+  document.getElementById("file").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
+    rd.onload=()=>{ const r=csvParaRespostas(String(rd.result)); document.getElementById("mArq").textContent=r.msg; document.getElementById("mArq").className="msg"+(r.ok?"":" err"); if(r.ok){ arquivo=r.dados; setTimeout(()=>vai("arquivo"),600); } };
+    rd.readAsText(f,"utf-8"); };
+}
+
+// ------------------------------------------------------------------ rotas
+function render(){
+  if(tela==="urna") return urnaTela();
+  if(tela==="configurar") return configurar();
+  painel();
+}
+window.addEventListener("hashchange",()=>{ tela=location.hash.replace("#","")||"painel"; voto=null; render(); window.scrollTo({top:0}); });
+iniciaPoll(); render();
+</script>
+
+</body></html>

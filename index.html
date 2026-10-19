@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:inherit}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>MegAline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="MegAline: aplicações educacionais interativas criadas por Aline Kafer — simuladores, jogos e dinâmicas para a sala de aula.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: vitrine de bancada — cabeçalho com assinatura, filtros por área, grade de fichas com faixa colorida por área */
+:root{
+  --bg:#eef2f4; --surface:#ffffff; --fg:#13212b; --muted:#566673; --line:#d3dce2;
+  --accent:#b8155a; --accent-ink:#ffffff;
+  --a-auto:#0e6f78; --a-mat:#c26a00; --a-hum:#6a3fb5; --a-cie:#2f7d32; --a-ling:#a23b2a;
+  --band-ink:#ffffff;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f171d; --surface:#17222a; --fg:#e6edf1; --muted:#9aabb7; --line:#2a3943;
+  --accent:#ff5c9a; --accent-ink:#1a0710;
+  --a-auto:#2a9aa3; --a-mat:#d98b25; --a-hum:#8f6ad6; --a-cie:#4f9e52; --a-ling:#c95a47;
+  --band-ink:#ffffff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f171d; --surface:#17222a; --fg:#e6edf1; --muted:#9aabb7; --line:#2a3943;
+  --accent:#ff5c9a; --accent-ink:#1a0710;
+  --a-auto:#2a9aa3; --a-mat:#d98b25; --a-hum:#8f6ad6; --a-cie:#4f9e52; --a-ling:#c95a47;
+  --band-ink:#ffffff; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--body)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 56px;display:grid;gap:36px}
+header{display:grid;gap:14px}
+.brand{font:800 clamp(3rem,10vw,6.2rem)/.9 var(--display);letter-spacing:-.035em;margin:0}
+.brand span{color:var(--accent)}
+.lede{margin:0;max-width:58ch;font-size:1.15rem;color:var(--muted);text-wrap:balance}
+.lede strong{color:var(--fg)}
+.sig{font:500 .78rem var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters button{font:700 .9rem var(--body);padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.filters button:hover{border-color:var(--fg)}
+.filters button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.filters button:focus-visible,.card a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;list-style:none;margin:0;padding:0}
+.card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.band{background:var(--c);color:var(--band-ink);padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-end;min-height:92px;gap:10px}
+.glyph{font:700 1.7rem/1 var(--display);letter-spacing:-.02em}
+.area{font:500 .68rem var(--mono);text-transform:uppercase;letter-spacing:.09em;opacity:.92;text-align:right}
+.body{padding:16px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card h2{font:700 1.3rem/1.15 var(--display);margin:0;text-wrap:balance}
+.card p{margin:0;color:var(--muted);font-size:.95rem}
+.meta{font:500 .72rem var(--mono);color:var(--muted);letter-spacing:.03em}
+.card a{margin-top:auto;align-self:flex-start;display:inline-flex;gap:6px;align-items:center;font:700 .95rem var(--body);color:var(--accent-ink);background:var(--accent);text-decoration:none;padding:9px 16px;border-radius:8px}
+.card a:hover{filter:brightness(1.08)}
+.card[hidden]{display:none!important}
+footer{border-top:1px solid var(--line);padding-top:18px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:.88rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.card{transition:transform .15s ease}.card:hover{transform:translateY(-2px)}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="sig">Portfólio de aplicações · Aline Kafer</div>
+    <h1 class="brand">Meg<span>Aline</span></h1>
+    <p class="lede">Simuladores, jogos e dinâmicas que criei para a sala de aula, <strong>do CLP à tabuada</strong>. Todos funcionam direto no navegador, no computador ou no celular.</p>
+  </header>
+
+  <nav class="filters" aria-label="Filtrar por área">
+    <button type="button" id="f-todas" data-f="todas" aria-pressed="true">Todas</button>
+    <button type="button" id="f-auto" data-f="auto" aria-pressed="false">Automação industrial</button>
+    <button type="button" id="f-mat" data-f="mat" aria-pressed="false">Matemática</button>
+    <button type="button" id="f-hum" data-f="hum" aria-pressed="false">Ciências humanas</button>
+    <button type="button" id="f-cie" data-f="cie" aria-pressed="false">Ciências da natureza</button>
+    <button type="button" id="f-ling" data-f="ling" aria-pressed="false">Linguagens</button>
+  </nav>
+
+  <ul class="grid" id="grid">
+    <li class="card" data-a="auto" style="--c:var(--a-auto)">
+      <div class="band"><span class="glyph">PV → SP</span><span class="area">Automação<br>industrial</span></div>
+      <div class="body">
+        <h2>Controle de Nível em Tanque</h2>
+        <p>Planta com bomba na entrada e saída por gravidade. Sintonize o PID, alterne manual e automático e aplique perturbações.</p>
+        <span class="meta">Malha LIC-101 · simulador</span>
+        <a href="apps/controle-nivel-tanque.html">Abrir →</a>
+      </div>
+    </li>
+    <li class="card" data-a="auto" style="--c:var(--a-auto)">
+      <div class="band"><span class="glyph">Kp Ki Kd</span><span class="area">Automação<br>industrial</span></div>
+      <div class="body">
+        <h2>Desafio de Nível LIC-101</h2>
+        <p>Missões com XP para sintonizar o controle de nível antes de levar o código ao CLP. Os ganhos começam em zero.</p>
+        <span class="meta">CLP · aulas 25 a 28 · desafio</span>
+        <a href="apps/desafio-nivel-lic101.html">Abrir →</a>
+      </div>
+    </li>
+    <li class="card" data-a="mat" style="--c:var(--a-mat)">
+      <div class="band"><span class="glyph">7 × 8 = ?</span><span class="area">Matemática</span></div>
+      <div class="body">
+        <h2>Ilha dos Números</h2>
+        <p>Jogo de aventura: corra, nade, pule e acerte as contas para conquistar as cinco regiões da ilha. Tem treino sob medida.</p>
+        <span class="meta">Tabuada · jogo</span>
+        <a href="apps/ilha-dos-numeros.html">Jogar →</a>
+      </div>
+    </li>
+    <li class="card" data-a="hum" style="--c:var(--a-hum)">
+      <div class="band"><span class="glyph">♥ 1,2 mil</span><span class="area">Cidadania<br>digital</span></div>
+      <div class="body">
+        <h2>Simulador de Bolha</h2>
+        <p>Mostra como o feed de uma rede social filtra o que cada pessoa vê, a partir de um debate da cidade: parque ou estacionamento?</p>
+        <span class="meta">Algoritmos · dinâmica em grupo</span>
+        <a href="apps/simulador-de-bolha.html">Abrir →</a>
+      </div>
+    </li>
+    <li class="card" data-a="hum" style="--c:var(--a-hum)">
+      <div class="band"><span class="glyph">16 anos</span><span class="area">Sociologia</span></div>
+      <div class="body">
+        <h2>Mesma Largada?</h2>
+        <p>Cada grupo vive o ano escolar com o perfil de um estudante. Todos passam pelos mesmos fatos; nem todos chegam ao mesmo lugar.</p>
+        <span class="meta">Capitais de Bourdieu · modo pátio</span>
+        <a href="apps/mesma-largada.html">Abrir →</a>
+      </div>
+    </li>
+    <li class="card" data-a="hum" style="--c:var(--a-hum)">
+      <div class="band"><span class="glyph">Censo 2022</span><span class="area">Sociologia ·<br>Geografia</span></div>
+      <div class="body">
+        <h2>Raio-X da Turma</h2>
+        <p>A turma responde a um questionário anônimo e compara o resultado com os dados do IBGE para o Brasil e o Rio Grande do Sul.</p>
+        <span class="meta">Dados reais · QR code</span>
+        <a href="apps/raio-x-da-turma.html">Abrir →</a>
+      </div>
+    </li>
+    <li class="card" data-a="cie" style="--c:var(--a-cie)">
+      <div class="band"><span class="glyph">0 / 8</span><span class="area">Ciências ·<br>Biomas</span></div>
+      <div class="body">
+        <h2>Safári de Papel</h2>
+        <p>Os animais da mostra de biomas em realidade aumentada, em tamanho real sobre a mesa ou o chão, com passaporte para completar.</p>
+        <span class="meta">Realidade aumentada · celular</span>
+        <a href="apps/safari-de-papel.html">Abrir →</a>
+      </div>
+    </li>
+    <li class="card" data-a="ling" style="--c:var(--a-ling)">
+      <div class="band"><span class="glyph">Estação 1</span><span class="area">Leitura</span></div>
+      <div class="body">
+        <h2>A Biblioteca Apagada</h2>
+        <p>Escape room por estações: as equipes leem textos, decifram as cartas e digitam os códigos antes que o tempo acabe.</p>
+        <span class="meta">Escape room · equipes</span>
+        <a href="apps/biblioteca-apagada.html">Abrir →</a>
+      </div>
+    </li>
+  </ul>
+
+  <footer>
+    <span id="count">8 aplicações</span>
+    <span>MegAline · atualizado em outubro de 2026</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var btns=[].slice.call(document.querySelectorAll('.filters button'));
+  var cards=[].slice.call(document.querySelectorAll('.card'));
+  var count=document.getElementById('count');
+  function apply(f){
+    var n=0;
+    btns.forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.f===f));});
+    cards.forEach(function(c){var show=f==='todas'||c.dataset.a===f;c.hidden=!show;if(show)n++;});
+    count.textContent=n+(n===1?' aplicação':' aplicações');
+  }
+  btns.forEach(function(b){b.addEventListener('click',function(){apply(b.dataset.f);});});
+})();
+</script>
+</body>
+</html>
