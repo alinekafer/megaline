@@ -1,0 +1,1198 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Bancada Ladder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky CPU-style header; instruction bar + inspector over a schematic sheet; simulation console at right (stacks below 960px) */
+:root{
+  --bg:#e7ebef; --panel:#f8fafc; --sheet:#ffffff; --ink:#16202a; --muted:#5a6776; --line:#cdd5de; --rail:#26313d;
+  --accent:#2148c9; --accent-ink:#ffffff; --accent-soft:#dfe6fb; --on:#0e9a52; --on-soft:#d4f2e2; --wire:#9aa6b2;
+  --warn:#a86400; --warn-soft:#fbefd8; --danger:#c23a3a; --danger-soft:#f9e1e1; --grid:#e3e8ee; --code:#f1f4f7;
+  --f-ui:"Archivo", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --toph:64px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d1217; --panel:#141b22; --sheet:#10171d; --ink:#e2e8ee; --muted:#93a0ae; --line:#28333e; --rail:#c3ccd6;
+  --accent:#7d97ff; --accent-ink:#0d1217; --accent-soft:#1c2645; --on:#34d483; --on-soft:#11392a; --wire:#4f5c69;
+  --warn:#f0b04a; --warn-soft:#3a2c12; --danger:#ff7d7d; --danger-soft:#3d1b1b; --grid:#18212a; --code:#0b1116; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0d1217; --panel:#141b22; --sheet:#10171d; --ink:#e2e8ee; --muted:#93a0ae; --line:#28333e; --rail:#c3ccd6;
+  --accent:#7d97ff; --accent-ink:#0d1217; --accent-soft:#1c2645; --on:#34d483; --on-soft:#11392a; --wire:#4f5c69;
+  --warn:#f0b04a; --warn-soft:#3a2c12; --danger:#ff7d7d; --danger-soft:#3d1b1b; --grid:#18212a; --code:#0b1116; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--panel)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono)}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand svg{flex:none}
+.brand b{font-weight:800;font-stretch:118%;font-size:17px;letter-spacing:-.01em;white-space:nowrap}
+.pname{border:1px solid transparent;background:transparent;border-radius:6px;padding:4px 8px;font-weight:600;min-width:0;width:220px;max-width:46vw}
+.pname:hover,.pname:focus{border-color:var(--line);background:var(--sheet)}
+.spacer{flex:1}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.cpu{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:4px 4px 4px 12px;background:var(--sheet)}
+.leds{display:grid;grid-template-columns:auto auto;gap:2px 6px;align-items:center;font:600 9.5px var(--f-mono);letter-spacing:.08em;color:var(--muted)}
+.led{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.led.run.lit{background:var(--on);box-shadow:0 0 8px var(--on)}
+.led.stop.lit{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.runbtn{border:0;border-radius:8px;padding:8px 14px;font-weight:800;font-stretch:112%;letter-spacing:.04em;background:var(--on);color:var(--sheet);min-width:96px}
+body.running .runbtn{background:var(--danger)}
+
+/* main grid */
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 48px}
+@media (max-width:960px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.editor{min-width:0;display:flex;flex-direction:column;gap:10px}
+
+/* instruction bar */
+.tools{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+@media (min-width:961px){.tools{position:sticky;top:calc(var(--toph) + env(safe-area-inset-top,0px));z-index:10;flex-wrap:wrap}}
+.tg{display:flex;flex-direction:column;gap:4px;padding:0 6px;border-left:1px solid var(--line)}
+.tg:first-child{border-left:0}
+.tg>span{font:600 9.5px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-left:2px}
+.tg>div{display:flex;gap:4px}
+.tb{border:1px solid transparent;background:transparent;border-radius:8px;padding:4px 6px 3px;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:46px;color:var(--ink)}
+.tb svg{width:36px;height:20px}
+.tb small{font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap}
+.tb:hover{background:var(--accent-soft);border-color:var(--accent)}
+.tb:disabled{opacity:.35;cursor:not-allowed;background:transparent;border-color:transparent}
+
+/* inspector */
+.insp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;min-height:58px}
+.insp .ihead{display:flex;flex-direction:column;gap:1px;min-width:120px}
+.itype{font-weight:700;font-stretch:108%}
+.ihint{font-size:12px;color:var(--muted)}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);font-weight:600}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line);background:var(--sheet);border-radius:7px;padding:6px 8px;font-size:13px;color:var(--ink);font-weight:500;width:150px;max-width:100%}
+.fld input.mono{font-family:var(--f-mono)}
+.fld textarea{width:min(520px,80vw);resize:vertical;min-height:38px}
+.fld input.bad{border-color:var(--danger);background:var(--danger-soft)}
+.fld.w-s input{width:90px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--sheet)}
+.seg button{border:0;background:transparent;padding:6px 10px;font-weight:600;font-size:12.5px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.ghost{border:1px dashed var(--line);background:transparent;border-radius:7px;padding:6px 10px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+/* sheet */
+.sheet{background:var(--sheet);background-image:radial-gradient(var(--grid) 1px,transparent 1.2px);background-size:14px 14px;border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+body.running .sheet{border-color:var(--on)}
+.rung{border-bottom:1px dashed var(--line);min-width:max-content}
+.rung.cur{background:color-mix(in srgb,var(--accent-soft) 35%,transparent)}
+.rhead{display:flex;align-items:center;gap:10px;padding:8px 12px 0;position:sticky;left:0;width:min(100%,100vw - 48px);max-width:calc(100vw - 48px)}
+.rn{font:600 11px var(--f-mono);letter-spacing:.06em;color:var(--accent);white-space:nowrap;border:1px solid var(--accent);border-radius:5px;padding:1px 6px;background:var(--sheet)}
+.rc{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;min-width:0;flex:1}
+.rc:empty::before{content:"Clique para comentar esta linha";opacity:.6;font-style:italic}
+.racts{display:flex;gap:2px;flex:none}
+.racts button{border:0;background:transparent;border-radius:6px;width:28px;height:26px;display:grid;place-items:center;color:var(--muted)}
+.racts button:hover{background:var(--accent-soft);color:var(--accent)}
+.racts svg{width:15px;height:15px}
+.rung svg.lad{display:block}
+.addrung{margin:10px 12px 14px;position:sticky;left:12px}
+
+.w{stroke:var(--wire);stroke-width:2;stroke-linecap:square;fill:none}
+.w.on{stroke:var(--on);stroke-width:3.5}
+.rail{stroke:var(--rail);stroke-width:4}
+.sym{stroke:var(--ink);stroke-width:2.4;fill:none;stroke-linecap:round}
+.sym.on{stroke:var(--on)}
+.cfill{fill:transparent}.cfill.on{fill:var(--on-soft)}
+.box{fill:var(--sheet);stroke:var(--ink);stroke-width:1.8}
+.box.on{stroke:var(--on);fill:var(--on-soft)}
+text{font-family:var(--f-ui)}
+text.s{font-weight:600;font-size:11.5px;fill:var(--ink);text-anchor:middle}
+text.a{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted);text-anchor:middle}
+text.a.bad{fill:var(--danger);font-weight:600}
+text.bt{font-weight:800;font-size:12px;fill:var(--ink);text-anchor:middle;font-stretch:110%}
+text.bv{font-family:var(--f-mono);font-size:10.5px;fill:var(--ink);text-anchor:middle}
+text.pin{font-family:var(--f-mono);font-size:9px;fill:var(--muted)}
+text.ltr{font-family:var(--f-mono);font-weight:600;font-size:11px;fill:var(--ink);text-anchor:middle}
+text.ph{font-size:11.5px;fill:var(--muted);text-anchor:middle;font-style:italic}
+.hit{fill:transparent;stroke:transparent}
+.el{cursor:pointer}
+.el:hover .hit{fill:color-mix(in srgb,var(--accent-soft) 70%,transparent)}
+.el.selected .hit{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 3}
+.psel{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:5 4}
+body.running .el.inp{cursor:pointer}
+
+.status{display:flex;flex-wrap:wrap;gap:6px 14px;font:12px var(--f-mono);color:var(--muted);padding:2px 4px}
+.status b{color:var(--ink);font-weight:600}
+
+/* side console */
+.side{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:0;overflow:hidden}
+@media (min-width:961px){.side{position:sticky;top:calc(var(--toph) + env(safe-area-inset-top,0px) + 14px);max-height:calc(100vh - var(--toph) - 40px);display:flex;flex-direction:column}}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:transparent;padding:10px 6px;font-weight:700;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs .cnt{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--warn-soft);color:var(--warn);font-size:11px;margin-left:4px}
+.tabs .cnt.zero{background:var(--on-soft);color:var(--on)}
+.pane{padding:12px 14px 16px;overflow:auto}
+.pane h3{margin:14px 0 6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
+.pane h3:first-child{margin-top:0}
+.pane h3 small{text-transform:none;letter-spacing:0;font-weight:500}
+.iorow{display:grid;grid-template-columns:auto 58px minmax(0,1fr) auto;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)}
+.iorow:last-child{border-bottom:0}
+.ad{font:600 11.5px var(--f-mono);color:var(--muted)}
+.nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm.none{color:var(--muted);font-weight:400;font-style:italic}
+.sw{width:42px;height:24px;border-radius:12px;border:1px solid var(--line);background:var(--bg);position:relative;padding:0;touch-action:none;user-select:none;-webkit-user-select:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .12s}
+.sw[aria-pressed="true"]{background:var(--on);border-color:var(--on)}
+.sw[aria-pressed="true"]::after{transform:translateX(18px);background:var(--sheet)}
+.sw.push{width:42px;border-radius:8px}
+.sw.push::after{left:11px;top:3px;width:18px;height:16px;border-radius:5px;background:var(--danger);box-shadow:0 2px 0 color-mix(in srgb,var(--danger) 60%,#000)}
+.sw.push[aria-pressed="true"]{background:var(--on-soft);border-color:var(--on)}
+.sw.push[aria-pressed="true"]::after{transform:translateY(2px);box-shadow:none;background:var(--danger)}
+.mode{border:1px solid var(--line);background:transparent;border-radius:6px;font-size:10.5px;font-weight:700;padding:2px 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.mode:hover{color:var(--accent);border-color:var(--accent)}
+.lamp{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--bg);margin:0 10px}
+.lamp.on{background:var(--on);border-color:var(--on);box-shadow:0 0 12px var(--on)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:6px;padding:3px 7px;font:600 11.5px var(--f-mono);color:var(--muted);background:var(--sheet)}
+.chip.on{background:var(--on-soft);border-color:var(--on);color:var(--on)}
+.tc{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.tc:last-child{border-bottom:0}
+.tc .bar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--bg);overflow:hidden;border:1px solid var(--line)}
+.tc .bar i{display:block;height:100%;width:0;background:var(--accent)}
+.tc .val{font:600 12px var(--f-mono);font-variant-numeric:tabular-nums}
+.q{font:700 10px var(--f-mono);border-radius:5px;padding:1px 5px;border:1px solid var(--line);color:var(--muted)}
+.q.on{background:var(--on);border-color:var(--on);color:var(--sheet)}
+.note{font-size:12px;color:var(--muted)}
+
+.ttab{width:100%;border-collapse:collapse;font-size:12.5px}
+.ttab th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 4px;border-bottom:1px solid var(--line)}
+.ttab td{padding:3px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ttab input{width:100%;min-width:0;border:1px solid transparent;background:transparent;border-radius:5px;padding:4px 5px;font-size:12.5px}
+.ttab input:hover,.ttab input:focus{border-color:var(--line);background:var(--sheet)}
+.ttab td.ad{white-space:nowrap}
+.ttab .x{border:0;background:transparent;color:var(--muted);border-radius:5px;width:24px;height:24px}
+.ttab .x:hover{color:var(--danger);background:var(--danger-soft)}
+.addtag{display:flex;gap:6px;margin-top:10px}
+.addtag input{flex:1;min-width:0;border:1px solid var(--line);background:var(--sheet);border-radius:7px;padding:6px 8px;font-family:var(--f-mono);font-size:12.5px}
+.warns{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.warns li{background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn);border-radius:6px;padding:7px 9px;font-size:12.5px}
+.okmsg{background:var(--on-soft);border-left:3px solid var(--on);border-radius:6px;padding:8px 10px;font-size:12.5px}
+
+/* modal */
+.ov{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,#000 45%,transparent);display:flex;align-items:flex-start;justify-content:center;
+  padding-top:max(24px,env(safe-area-inset-top,0px));padding-bottom:max(24px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));overflow:auto}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(860px,100%);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.mh h2{margin:0;font-size:18px;font-weight:800;font-stretch:112%}
+.mh button{border:0;background:transparent;font-size:22px;line-height:1;color:var(--muted);width:34px;height:34px;border-radius:8px}
+.mh button:hover{background:var(--bg)}
+.mb{padding:16px 18px 20px;display:flex;flex-direction:column;gap:14px}
+.mb h4{margin:4px 0 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.card{border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:3px}
+.card:hover{border-color:var(--accent)}
+.card b{font-size:13.5px}
+.card span{font-size:12px;color:var(--muted)}
+.saved{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--sheet)}
+.saved li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.saved li:last-child{border-bottom:0}
+.saved li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved li small{color:var(--muted);font-size:11.5px}
+.mtabs{display:flex;gap:6px;flex-wrap:wrap}
+.mtabs button{border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:7px 12px;font-weight:700;font-size:13px}
+.mtabs button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.codewrap{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--code);overflow:auto;max-height:46vh}
+.code{margin:0;padding:12px 14px;font:12px/1.55 var(--f-mono);white-space:pre;tab-size:4}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px;font-size:13.5px;max-width:72ch}
+.steps code,.mb p code{font-family:var(--f-mono);font-size:12px;background:var(--code);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.mb p{margin:0;max-width:72ch}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:6px;padding:8px 12px;font-size:13px;max-width:80ch}
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:9px 14px;border-radius:9px;font-size:13px;font-weight:600;z-index:60;max-width:calc(100vw - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--sheet)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top" id="top">
+  <div class="brand">
+    <svg width="30" height="26" viewBox="0 0 30 26" aria-hidden="true"><path d="M3 2V24M27 2V24" stroke="var(--rail)" stroke-width="3"/><path d="M3 8H11M15 8H27M3 18H11M15 18H18M22 18H27" stroke="var(--on)" stroke-width="2"/><path d="M11 4V12M15 4V12M11 14V22M15 14V22" stroke="var(--ink)" stroke-width="2"/><path d="M19 15Q17 18 19 21M21 15Q23 18 21 21" stroke="var(--ink)" stroke-width="1.6" fill="none"/></svg>
+    <b>Bancada Ladder</b>
+  </div>
+  <input class="pname" id="pname" aria-label="Nome do projeto" spellcheck="false">
+  <div class="spacer"></div>
+  <div class="hbtns">
+    <button class="btn" id="b-proj">Projeto</button>
+    <button class="btn" id="b-exp">Exportar</button>
+    <button class="btn" id="b-help">Ajuda</button>
+    <div class="cpu">
+      <div class="leds" aria-hidden="true"><span class="led run" id="led-run"></span><span>RUN</span><span class="led stop lit" id="led-stop"></span><span>STOP</span></div>
+      <button class="runbtn" id="b-run">▶ RUN</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="editor">
+    <div class="tools" id="tools" role="toolbar" aria-label="Instruções ladder">
+      <div class="tg"><span>Contatos</span><div>
+        <button class="tb" data-act="c-NO" title="Contato normalmente aberto (1)"><svg viewBox="0 0 36 20"><path d="M0 10H13M23 10H36M13 3V17M23 3V17" stroke="currentColor" stroke-width="2" fill="none"/></svg><small>NA</small></button>
+        <button class="tb" data-act="c-NC" title="Contato normalmente fechado (2)"><svg viewBox="0 0 36 20"><path d="M0 10H13M23 10H36M13 3V17M23 3V17M10 17L26 3" stroke="currentColor" stroke-width="2" fill="none"/></svg><small>NF</small></button>
+        <button class="tb" data-act="c-P" title="Contato de borda de subida"><svg viewBox="0 0 36 20"><path d="M0 10H13M23 10H36M13 3V17M23 3V17" stroke="currentColor" stroke-width="2" fill="none"/><text x="18" y="13.5" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor">P</text></svg><small>Subida</small></button>
+        <button class="tb" data-act="c-N" title="Contato de borda de descida"><svg viewBox="0 0 36 20"><path d="M0 10H13M23 10H36M13 3V17M23 3V17" stroke="currentColor" stroke-width="2" fill="none"/><text x="18" y="13.5" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor">N</text></svg><small>Descida</small></button>
+        <button class="tb" data-act="c-K" title="Comparação (ex.: C0.CV >= 5)"><svg viewBox="0 0 36 20"><path d="M0 10H6M30 10H36" stroke="currentColor" stroke-width="2"/><rect x="6" y="3" width="24" height="14" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><text x="18" y="13.5" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor">≥</text></svg><small>Compara</small></button>
+      </div></div>
+      <div class="tg"><span>Estrutura</span><div>
+        <button class="tb" data-act="branch" title="Ramo paralelo em volta da seleção (B)"><svg viewBox="0 0 36 20"><path d="M0 5H36M6 5V15H30V5" stroke="currentColor" stroke-width="2" fill="none"/></svg><small>Paralelo</small></button>
+        <button class="tb" data-act="rung" title="Nova linha abaixo da atual (L)"><svg viewBox="0 0 36 20"><path d="M3 1V19M33 1V19M3 10H33" stroke="currentColor" stroke-width="2"/><path d="M18 5V15M13 10H23" stroke="var(--accent)" stroke-width="2.4"/></svg><small>Linha</small></button>
+      </div></div>
+      <div class="tg"><span>Saídas</span><div>
+        <button class="tb" data-act="o-COIL" title="Bobina (3)"><svg viewBox="0 0 36 20"><path d="M0 10H11M25 10H36M14 3Q8 10 14 17M22 3Q28 10 22 17" stroke="currentColor" stroke-width="2" fill="none"/></svg><small>Bobina</small></button>
+        <button class="tb" data-act="o-NCOIL" title="Bobina negada"><svg viewBox="0 0 36 20"><path d="M0 10H11M25 10H36M14 3Q8 10 14 17M22 3Q28 10 22 17M15 15L21 5" stroke="currentColor" stroke-width="2" fill="none"/></svg><small>Negada</small></button>
+        <button class="tb" data-act="o-SET" title="Set (liga e mantém)"><svg viewBox="0 0 36 20"><path d="M0 10H11M25 10H36M14 3Q8 10 14 17M22 3Q28 10 22 17" stroke="currentColor" stroke-width="2" fill="none"/><text x="18" y="13.5" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor">S</text></svg><small>Set</small></button>
+        <button class="tb" data-act="o-RST" title="Reset (desliga)"><svg viewBox="0 0 36 20"><path d="M0 10H11M25 10H36M14 3Q8 10 14 17M22 3Q28 10 22 17" stroke="currentColor" stroke-width="2" fill="none"/><text x="18" y="13.5" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor">R</text></svg><small>Reset</small></button>
+      </div></div>
+      <div class="tg"><span>Temporizadores</span><div>
+        <button class="tb" data-act="o-TON" title="Retardo na energização (TON)"><svg viewBox="0 0 36 20"><rect x="3" y="2" width="30" height="16" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><text x="18" y="13.5" font-size="8" font-weight="800" text-anchor="middle" fill="currentColor">TON</text></svg><small>TON</small></button>
+        <button class="tb" data-act="o-TOF" title="Retardo na desenergização (TOF)"><svg viewBox="0 0 36 20"><rect x="3" y="2" width="30" height="16" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><text x="18" y="13.5" font-size="8" font-weight="800" text-anchor="middle" fill="currentColor">TOF</text></svg><small>TOF</small></button>
+        <button class="tb" data-act="o-TP" title="Pulso de duração fixa (TP)"><svg viewBox="0 0 36 20"><rect x="3" y="2" width="30" height="16" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><text x="18" y="13.5" font-size="8" font-weight="800" text-anchor="middle" fill="currentColor">TP</text></svg><small>TP</small></button>
+      </div></div>
+      <div class="tg"><span>Contadores</span><div>
+        <button class="tb" data-act="o-CTU" title="Contador crescente (CTU)"><svg viewBox="0 0 36 20"><rect x="3" y="2" width="30" height="16" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><text x="18" y="13.5" font-size="8" font-weight="800" text-anchor="middle" fill="currentColor">CTU</text></svg><small>CTU</small></button>
+        <button class="tb" data-act="o-CTD" title="Contador decrescente (CTD)"><svg viewBox="0 0 36 20"><rect x="3" y="2" width="30" height="16" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><text x="18" y="13.5" font-size="8" font-weight="800" text-anchor="middle" fill="currentColor">CTD</text></svg><small>CTD</small></button>
+        <button class="tb" data-act="o-RES" title="Zera um contador"><svg viewBox="0 0 36 20"><path d="M0 10H7M29 10H36" stroke="currentColor" stroke-width="2"/><rect x="7" y="3" width="22" height="14" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><text x="18" y="13.5" font-size="8" font-weight="800" text-anchor="middle" fill="currentColor">RES</text></svg><small>Zerar</small></button>
+      </div></div>
+      <div class="tg"><span>Editar</span><div>
+        <button class="tb" data-act="undo" title="Desfazer (Ctrl+Z)"><svg viewBox="0 0 36 20"><path d="M12 5L7 10L12 15M7 10H23Q29 10 29 15" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/></svg><small>Desfazer</small></button>
+        <button class="tb" data-act="redo" title="Refazer (Ctrl+Y)"><svg viewBox="0 0 36 20"><path d="M24 5L29 10L24 15M29 10H13Q7 10 7 15" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/></svg><small>Refazer</small></button>
+        <button class="tb" data-act="del" title="Excluir seleção (Delete)"><svg viewBox="0 0 36 20"><path d="M11 5H25M15 5V3H21V5M13 5L14 18H22L23 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></svg><small>Excluir</small></button>
+      </div></div>
+    </div>
+
+    <div class="insp" id="insp" aria-live="polite"></div>
+    <div class="sheet" id="sheet"></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <aside class="side">
+    <div class="tabs" role="tablist">
+      <button class="on" data-tab="sim" role="tab">Simulação</button>
+      <button data-tab="tags" role="tab">Variáveis</button>
+      <button data-tab="warn" role="tab">Avisos <span class="cnt" id="wcnt">0</span></button>
+    </div>
+    <div class="pane" id="pane-sim"></div>
+    <div class="pane" id="pane-tags" hidden></div>
+    <div class="pane" id="pane-warn" hidden></div>
+  </aside>
+</main>
+
+<datalist id="addrs"></datalist>
+<input type="file" id="fileopen" accept=".json,application/json" hidden>
+<div class="ov" id="ov" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle"><div class="mh"><h2 id="mtitle"></h2><button id="mclose" aria-label="Fechar">×</button></div><div class="mb" id="mbody"></div></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let _u=0;
+const uid=()=>'n'+(++_u).toString(36)+Math.random().toString(36).slice(2,7);
+const LS_CUR='bancada-ladder:atual', LS_SAVED='bancada-ladder:salvos';
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v);return true}catch(e){return false}};
+
+/* ---------- endereços ---------- */
+const LIM={I:7,Q:7,M:31};
+function parseAddr(raw){
+  if(raw==null) return null;
+  let s=String(raw).trim().toUpperCase().replace(/^%/,'').replace(/^(I|Q|M)X/,'$1');
+  let m=s.match(/^(I|Q|M)(\d{1,2})\.([0-7])$/);
+  if(m){const b=+m[2]; if(b>LIM[m[1]]) return null; return {area:m[1],byte:b,bit:+m[3],key:`${m[1]}${b}.${m[3]}`};}
+  m=s.match(/^(T|C)(\d{1,2})$/);
+  if(m){const n=+m[2]; if(n>31) return null; return {area:m[1],n,key:m[1]+n};}
+  return null;
+}
+function resolveAddr(raw){
+  const a=parseAddr(raw); if(a) return a;
+  const s=String(raw??'').trim().toLowerCase(); if(!s) return null;
+  for(const k in P.tags){ if((P.tags[k].sym||'').toLowerCase()===s) return parseAddr(k); }
+  return null;
+}
+const dispAddr=a=>(/[IQM]/.test(a.area)?'%':'')+a.key;
+function addrOrder(k){const a=parseAddr(k); if(!a) return 1e9; const ar='IQMTC'.indexOf(a.area); return ar*10000+(a.n!=null?a.n:a.byte*8+a.bit);}
+const sortKeys=arr=>arr.slice().sort((x,y)=>addrOrder(x)-addrOrder(y));
+function parseOperand(raw){
+  const s=String(raw??'').trim().toUpperCase().replace(/^%/,'');
+  if(/^-?\d+$/.test(s)) return {k:'const',v:parseInt(s,10),txt:s};
+  const m=s.match(/^(T|C)(\d{1,2})\.(CV|ET|PV|PT)$/);
+  if(m && +m[2]<=31) return {k:'ref',area:m[1],key:m[1]+(+m[2]),f:m[3],txt:`${m[1]}${+m[2]}.${m[3]}`};
+  return null;
+}
+const fmtS=ms=>((ms||0)/1000).toFixed(1).replace('.',',');
+
+/* ---------- modelo ---------- */
+const COILS=['COIL','NCOIL','SET','RST'], TIM=['TON','TOF','TP'], CNT=['CTU','CTD'];
+const BOX=new Set([...TIM,...CNT]);
+const KIND_LABEL={NO:'Contato NA',NC:'Contato NF',P:'Contato de borda de subida',N:'Contato de borda de descida',K:'Comparação',
+  COIL:'Bobina',NCOIL:'Bobina negada',SET:'Bobina Set',RST:'Bobina Reset',TON:'Temporizador TON',TOF:'Temporizador TOF',TP:'Temporizador TP',
+  CTU:'Contador crescente CTU',CTD:'Contador decrescente CTD',RES:'Zerar contador'};
+const C_=(kind,addr='')=>({t:'C',id:uid(),kind,addr});
+const K_=(a,op,b)=>({t:'K',id:uid(),a,op,b});
+const S_=(...items)=>({t:'S',id:uid(),items});
+const P_=(...branches)=>({t:'P',id:uid(),branches});
+const O_=(kind,addr='',x={})=>({t:'O',id:uid(),kind,addr,pt:5000,pv:10,...x});
+const R_=(comment,logic,outputs)=>({id:uid(),comment,logic,outputs});
+const tag=(sym,cmt='',mode)=>({sym,cmt,...(mode?{mode}:{})});
+
+const EXAMPLES=[
+ {name:'Partida direta com selo',desc:'Liga/desliga por botões, selo do contator e sinal de falha.',make:()=>({name:'Partida direta',
+   tags:{'I0.0':tag('Liga','Botão liga (NA)','push'),'I0.1':tag('Desliga','Botão desliga (NA)','push'),'I0.2':tag('Rele_termico','Relé térmico atuado'),
+         'Q0.0':tag('Motor','Contator K1'),'Q0.1':tag('Falha','Sinaleiro de falha')},
+   rungs:[R_('Partida com selo: Liga OU contato do próprio motor, desliga se Desliga ou relé térmico',
+            S_(P_(S_(C_('NO','I0.0')),S_(C_('NO','Q0.0'))),C_('NC','I0.1'),C_('NC','I0.2')),[O_('COIL','Q0.0')]),
+          R_('Sinaleiro de falha',S_(C_('NO','I0.2')),[O_('COIL','Q0.1')])]})},
+ {name:'Partida estrela-triângulo',desc:'Três contatores e troca automática com TON.',make:()=>({name:'Estrela-triângulo',
+   tags:{'I0.0':tag('Liga','Botão liga','push'),'I0.1':tag('Desliga','Botão desliga','push'),'Q0.0':tag('K1_Principal','Contator principal'),
+         'Q0.1':tag('K2_Estrela','Contator estrela'),'Q0.2':tag('K3_Triangulo','Contator triângulo'),'T0':tag('Tempo_partida','Tempo em estrela')},
+   rungs:[R_('Contator principal com selo',S_(P_(S_(C_('NO','I0.0')),S_(C_('NO','Q0.0'))),C_('NC','I0.1')),[O_('COIL','Q0.0')]),
+          R_('Estrela enquanto o tempo não termina (intertravado com triângulo)',S_(C_('NO','Q0.0'),C_('NC','T0'),C_('NC','Q0.2')),[O_('COIL','Q0.1')]),
+          R_('Tempo de partida em estrela',S_(C_('NO','Q0.0')),[O_('TON','T0',{pt:5000})]),
+          R_('Triângulo após o tempo (intertravado com estrela)',S_(C_('NO','Q0.0'),C_('NO','T0'),C_('NC','Q0.1')),[O_('COIL','Q0.2')])]})},
+ {name:'Pisca-pisca',desc:'Dois TON em cascata geram 1 s ligado, 1 s desligado.',make:()=>({name:'Pisca-pisca',
+   tags:{'I0.0':tag('Habilita','Chave liga pisca'),'Q0.0':tag('Lampada','Lâmpada piscante'),'T0':tag('T_ligado'),'T1':tag('T_desligado')},
+   rungs:[R_('T0 conta enquanto T1 não terminou',S_(C_('NO','I0.0'),C_('NC','T1')),[O_('TON','T0',{pt:1000})]),
+          R_('T1 começa quando T0 termina; ao terminar, reinicia T0',S_(C_('NO','T0')),[O_('TON','T1',{pt:1000})]),
+          R_('Lâmpada acesa durante a contagem de T0',S_(C_('NO','I0.0'),C_('NC','T0')),[O_('COIL','Q0.0')])]})},
+ {name:'Contador de peças',desc:'CTU com preset, reset e comparação de valor.',make:()=>({name:'Contador de peças',
+   tags:{'I0.0':tag('Sensor_peca','Sensor de presença','push'),'I0.1':tag('Reset_lote','Botão reset','push'),'I0.2':tag('Liga_esteira','Chave da esteira'),
+         'Q0.0':tag('Lote_completo','Sinaleiro lote completo'),'Q0.1':tag('Esteira','Motor da esteira'),'Q0.2':tag('Quase_completo','Aviso: faltam 2 peças'),'C0':tag('Pecas')},
+   rungs:[R_('Conta cada peça que passa pelo sensor',S_(C_('NO','I0.0')),[O_('CTU','C0',{pv:5})]),
+          R_('Lote completo quando contagem ≥ preset',S_(C_('NO','C0')),[O_('COIL','Q0.0')]),
+          R_('Zera o lote',S_(C_('NO','I0.1')),[O_('RES','C0')]),
+          R_('Esteira para quando o lote fica completo',S_(C_('NO','I0.2'),C_('NC','C0')),[O_('COIL','Q0.1')]),
+          R_('Aviso a partir da 3ª peça',S_(K_('C0.CV','>=','3'),C_('NC','C0')),[O_('COIL','Q0.2')])]})},
+ {name:'Telerruptor',desc:'Um único botão liga e desliga, com borda de subida.',make:()=>({name:'Telerruptor',
+   tags:{'I0.0':tag('Botao','Botão pulsador','push'),'M0.0':tag('Pulso','Pulso de um ciclo'),'Q0.0':tag('Lampada')},
+   rungs:[R_('Pulso de um ciclo na borda de subida do botão',S_(C_('P','I0.0')),[O_('COIL','M0.0')]),
+          R_('Inverte a lâmpada a cada pulso (OU-exclusivo)',S_(P_(S_(C_('NO','M0.0'),C_('NC','Q0.0')),S_(C_('NC','M0.0'),C_('NO','Q0.0')))),[O_('COIL','Q0.0')])]})},
+];
+function blank(){return {name:'Novo projeto',tags:{},rungs:[R_('',S_(),[])]};}
+
+let P=null, sel={rung:null,nodes:[],out:null};
+let hist=[], hp=-1;
+
+function walk(s,fn){ for(const n of s.items){ fn(n); if(n.t==='P') n.branches.forEach(b=>walk(b,fn)); } }
+function locate(rung,id){
+  function w(s,parentP){ for(let i=0;i<s.items.length;i++){ const n=s.items[i]; if(n.id===id) return {series:s,index:i,parentP,node:n};
+      if(n.t==='P') for(const b of n.branches){ const r=w(b,n); if(r) return r; } } return null; }
+  return w(rung.logic,null);
+}
+const curRung=()=>P.rungs.find(r=>r.id===sel.rung)||null;
+function normalize(s){
+  for(let i=0;i<s.items.length;i++){ const n=s.items[i];
+    if(n.t==='P'){ n.branches.forEach(normalize); n.branches=n.branches.filter(b=>b.items.length);
+      if(!n.branches.length){ s.items.splice(i,1); i--; }
+      else if(n.branches.length===1){ s.items.splice(i,1,...n.branches[0].items); i--; } } }
+}
+function fixIds(p){
+  const fx=o=>{ if(!o.id) o.id=uid(); };
+  for(const r of p.rungs){ fx(r); if(!r.logic) r.logic=S_(); fx(r.logic); r.outputs=r.outputs||[]; r.outputs.forEach(o=>{fx(o);o.t='O'});
+    (function f(s){ fx(s); s.items=s.items||[]; for(const n of s.items){ fx(n); if(n.t==='P') n.branches.forEach(f); } })(r.logic); }
+  p.tags=p.tags||{}; return p;
+}
+function validSel(){
+  if(!P.rungs.length) P.rungs.push(R_('',S_(),[]));
+  let r=curRung(); if(!r){ r=P.rungs[0]; sel={rung:r.id,nodes:[],out:null}; return; }
+  sel.nodes=sel.nodes.filter(id=>locate(r,id));
+  if(sel.out && !r.outputs.some(o=>o.id===sel.out)) sel.out=null;
+}
+function commit(){
+  const j=JSON.stringify(P); if(hist[hp]===j) return;
+  hist=hist.slice(0,hp+1); hist.push(j); if(hist.length>150) hist.shift(); hp=hist.length-1;
+  lsSet(LS_CUR,j);
+}
+function undo(){ if(hp>0){ hp--; P=JSON.parse(hist[hp]); lsSet(LS_CUR,hist[hp]); validSel(); render(); } else toast('Nada para desfazer'); }
+function redo(){ if(hp<hist.length-1){ hp++; P=JSON.parse(hist[hp]); lsSet(LS_CUR,hist[hp]); validSel(); render(); } else toast('Nada para refazer'); }
+
+/* ---------- definições e validação ---------- */
+function collectDefs(p){
+  const T={},C={},dupT=new Set(),dupC=new Set();
+  for(const r of p.rungs) for(const o of r.outputs){ const a=parseAddr(o.addr); if(!a) continue;
+    if(TIM.includes(o.kind)&&a.area==='T'){ if(T[a.key]) dupT.add(a.key); else T[a.key]={type:o.kind,pt:Math.max(0,o.pt|0),id:o.id}; }
+    if(CNT.includes(o.kind)&&a.area==='C'){ if(C[a.key]) dupC.add(a.key); else C[a.key]={type:o.kind,pv:o.pv|0,id:o.id}; } }
+  return {T,C,dupT,dupC};
+}
+function usedAddrs(){
+  const s=new Set();
+  for(const r of P.rungs){ walk(r.logic,n=>{ if(n.t==='C'){const a=resolveAddr(n.addr); if(a) s.add(a.key);} if(n.t==='K'){[n.a,n.b].forEach(x=>{const o=parseOperand(x); if(o&&o.k==='ref') s.add(o.key);});} });
+    r.outputs.forEach(o=>{const a=resolveAddr(o.addr); if(a) s.add(a.key);}); }
+  return s;
+}
+function validate(){
+  const W=[], defs=collectDefs(P), coilUse={};
+  P.rungs.forEach((r,i)=>{ const L=`Linha ${i+1}: `;
+    walk(r.logic,n=>{
+      if(n.t==='C'){ const a=resolveAddr(n.addr);
+        if(!a) W.push(L+(String(n.addr||'').trim()?`endereço “${n.addr}” não reconhecido`:'contato sem endereço'));
+        else if(a.area==='T'&&!defs.T[a.key]) W.push(L+`contato ${a.key} sem temporizador ${a.key} no programa`);
+        else if(a.area==='C'&&!defs.C[a.key]) W.push(L+`contato ${a.key} sem contador ${a.key} no programa`); }
+      if(n.t==='K'){ if(!parseOperand(n.a)||!parseOperand(n.b)) W.push(L+'comparação com operando inválido (use C0.CV, C0.PV, T0.ET, T0.PT ou número)'); }
+    });
+    if(!r.outputs.length) W.push(L+'linha sem saída (bobina, temporizador ou contador)');
+    r.outputs.forEach(o=>{ const a=resolveAddr(o.addr);
+      if(COILS.includes(o.kind)){ if(!a) W.push(L+'bobina sem endereço válido');
+        else if(!['Q','M'].includes(a.area)) W.push(L+`bobina só escreve em %Q ou %M (encontrado ${dispAddr(a)})`);
+        else if(o.kind==='COIL'||o.kind==='NCOIL') (coilUse[a.key]=coilUse[a.key]||[]).push(i+1); }
+      if(TIM.includes(o.kind)&&(!a||a.area!=='T')) W.push(L+'temporizador precisa de endereço T (ex.: T0)');
+      if(CNT.includes(o.kind)&&(!a||a.area!=='C')) W.push(L+'contador precisa de endereço C (ex.: C0)');
+      if(o.kind==='RES'&&(!a||a.area!=='C')) W.push(L+'Zerar precisa de um contador (ex.: C0)');
+      else if(o.kind==='RES'&&!defs.C[a.key]) W.push(L+`Zerar ${a.key}: não há contador ${a.key} no programa`);
+    });
+  });
+  for(const k in coilUse) if(coilUse[k].length>1) W.push(`Bobina dupla: %${k} é escrita nas linhas ${coilUse[k].join(', ')}; só a última escrita vale no fim do ciclo`);
+  defs.dupT.forEach(k=>W.push(`${k} aparece em mais de um bloco; só o primeiro é executado`));
+  defs.dupC.forEach(k=>W.push(`${k} aparece em mais de um bloco de contagem; só o primeiro é executado`));
+  const syms={}; for(const k in P.tags){ const s=(P.tags[k].sym||'').trim().toLowerCase(); if(s){ (syms[s]=syms[s]||[]).push(k); } }
+  for(const s in syms) if(syms[s].length>1) W.push(`O nome “${P.tags[syms[s][0]].sym}” está em ${syms[s].join(' e ')}; use nomes diferentes`);
+  return W;
+}
+
+/* ---------- simulação ---------- */
+const sim={running:false,bits:{},T:{},C:{},edge:{},pf:{},q:{},now:0,scans:0,last:0,cyc:0,defs:null};
+function coldStart(){ const keep={}; for(const k in sim.bits) if(k[0]==='I') keep[k]=sim.bits[k];
+  Object.assign(sim,{bits:keep,T:{},C:{},edge:{},pf:{},q:{},now:0,scans:0}); }
+const tState=k=>sim.T[k]||(sim.T[k]={q:false,et:0,run:false,start:0,prevIn:false});
+function cState(k){ if(!sim.C[k]){ const d=sim.defs&&sim.defs.C[k]; sim.C[k]={cv:d&&d.type==='CTD'?d.pv:0}; } return sim.C[k]; }
+function cQ(k){ const d=sim.defs.C[k]; if(!d) return false; const c=cState(k); return d.type==='CTD'?c.cv<=0:c.cv>=d.pv; }
+function readBool(raw){ const a=resolveAddr(raw); if(!a) return false; if(a.area==='T') return !!(sim.T[a.key]&&sim.T[a.key].q); if(a.area==='C') return cQ(a.key); return !!sim.bits[a.key]; }
+function readNum(o){ if(!o) return 0; if(o.k==='const') return o.v;
+  if(o.area==='C'){ if(o.f==='CV') return cState(o.key).cv; if(o.f==='PV') return sim.defs.C[o.key]?sim.defs.C[o.key].pv:0; return 0; }
+  if(o.f==='ET') return Math.round(sim.T[o.key]?sim.T[o.key].et:0); if(o.f==='PT') return sim.defs.T[o.key]?sim.defs.T[o.key].pt:0; return 0; }
+const CMP={'==':(a,b)=>a===b,'<>':(a,b)=>a!==b,'>':(a,b)=>a>b,'>=':(a,b)=>a>=b,'<':(a,b)=>a<b,'<=':(a,b)=>a<=b};
+const OPS=['==','<>','>','>=','<','<='], OPSYM={'==':'=','<>':'≠','>':'>','>=':'≥','<':'<','<=':'≤'};
+function evalSeries(s,p){ const pin=p; for(const n of s.items) p=evalNode(n,p); sim.pf[s.id]={in:pin,out:p}; return p; }
+function evalNode(n,p){
+  if(n.t==='C'){ const v=readBool(n.addr); let c;
+    if(n.kind==='NO') c=v; else if(n.kind==='NC') c=!v;
+    else { const prev=!!sim.edge[n.id]; c=n.kind==='P'?(v&&!prev):(!v&&prev); sim.edge[n.id]=v; }
+    const out=p&&c; sim.pf[n.id]={in:p,out}; sim.q[n.id]=c; return out; }
+  if(n.t==='K'){ const f=CMP[n.op]||CMP['==']; const c=f(readNum(parseOperand(n.a)),readNum(parseOperand(n.b)));
+    const out=p&&c; sim.pf[n.id]={in:p,out}; sim.q[n.id]=c; return out; }
+  let out=false; for(const b of n.branches){ if(evalSeries(b,p)) out=true; } sim.pf[n.id]={in:p,out}; return out;
+}
+function runTimer(o,a,inp){
+  const d=sim.defs.T[a.key]; if(!d||d.id!==o.id) return;
+  const t=tState(a.key), pt=d.pt, now=sim.now;
+  if(o.kind==='TON'){ if(inp){ if(!t.run){t.run=true;t.start=now;} t.et=Math.min(now-t.start,pt); t.q=t.et>=pt; } else {t.run=false;t.et=0;t.q=false;} }
+  else if(o.kind==='TOF'){ if(inp){t.q=true;t.et=0;t.run=false;} else if(t.q){ if(!t.run){t.run=true;t.start=now;} t.et=Math.min(now-t.start,pt); if(t.et>=pt){t.q=false;t.run=false;} } }
+  else { if(!t.run&&inp&&!t.prevIn){t.run=true;t.start=now;t.q=true;}
+    if(t.run){ t.et=Math.min(now-t.start,pt); if(t.et>=pt){ t.q=false; if(!inp){t.run=false;t.et=0;} } }
+    t.prevIn=inp; }
+}
+function execOut(o,rlo){
+  const a=resolveAddr(o.addr); const wr=a&&(a.area==='Q'||a.area==='M');
+  switch(o.kind){
+    case 'COIL': if(wr) sim.bits[a.key]=rlo; sim.q[o.id]=rlo; break;
+    case 'NCOIL': if(wr) sim.bits[a.key]=!rlo; sim.q[o.id]=rlo; break;
+    case 'SET': if(wr&&rlo) sim.bits[a.key]=true; sim.q[o.id]=rlo; break;
+    case 'RST': if(wr&&rlo) sim.bits[a.key]=false; sim.q[o.id]=rlo; break;
+    case 'TON': case 'TOF': case 'TP': if(a&&a.area==='T'){ runTimer(o,a,rlo); sim.q[o.id]=!!(sim.T[a.key]&&sim.T[a.key].q); } break;
+    case 'CTU': case 'CTD': { const prev=!!sim.edge[o.id];
+      if(a&&a.area==='C'&&sim.defs.C[a.key]&&sim.defs.C[a.key].id===o.id){ const c=cState(a.key);
+        if(rlo&&!prev){ c.cv=o.kind==='CTU'?Math.min(32767,c.cv+1):Math.max(-32768,c.cv-1); } sim.q[o.id]=cQ(a.key); }
+      sim.edge[o.id]=rlo; break; }
+    case 'RES': if(a&&a.area==='C'&&rlo){ const d=sim.defs.C[a.key]; cState(a.key).cv=d&&d.type==='CTD'?d.pv:0; } sim.q[o.id]=rlo; break;
+  }
+}
+function scan(){ sim.defs=collectDefs(P); for(const r of P.rungs){ const rlo=evalSeries(r.logic,true); for(const o of r.outputs) execOut(o,rlo); } sim.scans++; }
+function tick(){ if(!sim.running) return; const t=performance.now(); let dt=t-sim.last; sim.last=t; if(dt>250) dt=250; sim.now+=dt; sim.cyc=sim.cyc*0.9+dt*0.1; scan(); }
+setInterval(tick,10);
+function frame(){ if(sim.running){ updateMonitor(); updateIO(); updateStatus(); requestAnimationFrame(frame); } }
+function setRun(on){
+  if(on===sim.running) return;
+  if(on){ coldStart(); sim.defs=collectDefs(P); sim.running=true; sim.last=performance.now(); sim.cyc=10; scan(); requestAnimationFrame(frame); }
+  else { sim.running=false; coldStart(); sim.defs=collectDefs(P); }
+  document.body.classList.toggle('running',on);
+  $('#b-run').textContent=on?'■ STOP':'▶ RUN';
+  $('#led-run').classList.toggle('lit',on); $('#led-stop').classList.toggle('lit',!on);
+  updateMonitor(); updateIO(); updateStatus();
+}
+function setIn(k,v){ sim.bits[k]=v; updateIO(); if(!sim.running) updateMonitor(); }
+
+/* ---------- desenho do ladder ---------- */
+const RAIL=22, CW=96, KW=124, RH=76, CY=46, PADP=14, OW=156, BH=110;
+function sSize(s){ let w=0,h=RH; for(const n of s.items){const z=nSize(n); w+=z.w; h=Math.max(h,z.h);} return {w,h}; }
+function nSize(n){ if(n.t==='C') return {w:CW,h:RH}; if(n.t==='K') return {w:KW,h:RH};
+  let w=0,h=0; for(const b of n.branches){const z=sSize(b); w=Math.max(w,z.w); h+=z.h;} return {w:w+2*PADP,h}; }
+const oH=o=>BOX.has(o.kind)?BH:RH;
+function label(raw){
+  const a=resolveAddr(raw);
+  if(!a){ const t=String(raw||'').trim(); return {sym:'',adr:t||'???',bad:true,a:null}; }
+  const tg=P.tags[a.key]; return {sym:tg&&tg.sym?tg.sym:'',adr:dispAddr(a),bad:false,a};
+}
+const trunc=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
+function labels(c,L,cx,y){
+  if(L.sym){ c.o.push(`<text class="s" x="${cx}" y="${y+13}">${esc(trunc(L.sym,14))}</text><text class="a${L.bad?' bad':''}" x="${cx}" y="${y+26}">${esc(L.adr)}</text>`); }
+  else c.o.push(`<text class="a${L.bad?' bad':''}" x="${cx}" y="${y+24}">${esc(trunc(L.adr,14))}</text>`);
+}
+function wire(c,x1,y1,x2,y2,key){ if(x1===x2&&y1===y2) return; c.o.push(`<line class="w"${key?` data-p="${key}"`:''} x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`); }
+function drawSeries(s,x,y,w,c){ let cx=x; for(const n of s.items){ drawNode(n,cx,y,c); cx+=nSize(n).w; } if(cx<x+w) wire(c,cx,y+CY,x+w,y+CY,'o:'+s.id); }
+function drawNode(n,x,y,c){
+  const cy=y+CY;
+  if(n.t==='C'||n.t==='K'){
+    const w=n.t==='C'?CW:KW, cx=x+w/2, sl=c.sel.has(n.id)?' selected':'';
+    const L=n.t==='C'?label(n.addr):null; const isIn=L&&L.a&&L.a.area==='I';
+    c.o.push(`<g class="el${sl}${isIn?' inp':''}" data-sel="${n.id}"><rect class="hit" x="${x+2}" y="${y+3}" width="${w-4}" height="${RH-6}" rx="6"/>`);
+    if(n.t==='C'){
+      wire(c,x,cy,cx-9,cy,'i:'+n.id); wire(c,cx+9,cy,x+w,cy,'o:'+n.id);
+      c.o.push(`<rect class="cfill" data-p="q:${n.id}" x="${cx-9}" y="${cy-13}" width="18" height="26"/>`);
+      c.o.push(`<path class="sym" data-p="q:${n.id}" d="M${cx-9} ${cy-14}V${cy+14}M${cx+9} ${cy-14}V${cy+14}"/>`);
+      if(n.kind==='NC') c.o.push(`<path class="sym" data-p="q:${n.id}" style="stroke-width:1.8" d="M${cx-14} ${cy+12}L${cx+14} ${cy-12}"/>`);
+      if(n.kind==='P'||n.kind==='N') c.o.push(`<text class="ltr" x="${cx}" y="${cy+4}">${n.kind}</text>`);
+      labels(c,L,cx,y);
+    } else {
+      const bx=x+10,bw=w-20;
+      wire(c,x,cy,bx,cy,'i:'+n.id); wire(c,bx+bw,cy,x+w,cy,'o:'+n.id);
+      c.o.push(`<rect class="box" data-p="q:${n.id}" x="${bx}" y="${cy-20}" width="${bw}" height="40" rx="3"/>`);
+      const A=parseOperand(n.a), B=parseOperand(n.b);
+      c.o.push(`<text class="pin" x="${cx}" y="${y+18}" text-anchor="middle">CMP ${esc(OPSYM[n.op]||n.op)}</text>`);
+      c.o.push(`<text class="bv" x="${cx}" y="${cy-4}" ${A?'':'style="fill:var(--danger)"'}>${esc(trunc(A?A.txt:(n.a||'???'),14))}</text>`);
+      c.o.push(`<text class="bv" x="${cx}" y="${cy+12}" ${B?'':'style="fill:var(--danger)"'}>${esc(OPSYM[n.op]||n.op)} ${esc(trunc(B?B.txt:(n.b||'???'),11))}</text>`);
+    }
+    c.o.push('</g>'); return;
+  }
+  const z=nSize(n); let by=y; const ys=[];
+  for(const b of n.branches){ const bz=sSize(b); ys.push(by+CY);
+    wire(c,x,by+CY,x+PADP,by+CY,'i:'+n.id); drawSeries(b,x+PADP,by,z.w-2*PADP,c); wire(c,x+z.w-PADP,by+CY,x+z.w,by+CY,'o:'+b.id); by+=bz.h; }
+  wire(c,x,ys[0],x,ys[ys.length-1],'i:'+n.id); wire(c,x+z.w,ys[0],x+z.w,ys[ys.length-1],'o:'+n.id);
+  if(c.sel.has(n.id)) c.o.push(`<rect class="psel" x="${x-5}" y="${y+4}" width="${z.w+10}" height="${z.h-8}" rx="8"/>`);
+  c.o.push(`<g class="el" data-sel="${n.id}"><rect class="hit" x="${x-7}" y="${ys[0]-10}" width="14" height="${ys[ys.length-1]-ys[0]+20}" rx="4"><title>Selecionar o ramo paralelo inteiro</title></rect></g>`);
+}
+function drawOut(o,x,y,c,xR,inKey){
+  const cy=y+CY, cx=x+OW/2, sl=c.sel.has(o.id)?' selected':''; const L=label(o.addr);
+  c.o.push(`<g class="el${sl}" data-sel="${o.id}" data-out="1"><rect class="hit" x="${x+6}" y="${y+3}" width="${OW-10}" height="${oH(o)-6}" rx="6"/>`);
+  if(BOX.has(o.kind)){
+    const bx=x+26,bw=OW-52,by=y+30,bh=72;
+    wire(c,x,cy,bx,cy,inKey); wire(c,bx+bw,cy,xR,cy,'q:'+o.id);
+    c.o.push(`<rect class="box" data-p="q:${o.id}" x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="3"/>`);
+    labels(c,L,cx,y-2);
+    c.o.push(`<text class="pin" x="${bx+4}" y="${cy+3}">IN</text><text class="pin" x="${bx+bw-4}" y="${cy+3}" text-anchor="end">Q</text><text class="bt" x="${cx}" y="${cy+4}">${o.kind}</text>`);
+    const k=L.a?L.a.key:'';
+    if(TIM.includes(o.kind)){
+      c.o.push(`<text class="bv" x="${cx}" y="${y+72}">PT ${fmtS(o.pt)} s</text>`);
+      c.o.push(`<text class="bv" x="${cx}" y="${y+90}">ET <tspan ${k?`data-v="et:${k}"`:''}>0,0</tspan> s</text>`);
+    } else {
+      c.o.push(`<text class="bv" x="${cx}" y="${y+72}">PV ${o.pv|0}</text>`);
+      c.o.push(`<text class="bv" x="${cx}" y="${y+90}">CV <tspan ${k?`data-v="cv:${k}"`:''}>${o.kind==='CTD'?(o.pv|0):0}</tspan></text>`);
+    }
+  } else if(o.kind==='RES'){
+    wire(c,x,cy,cx-24,cy,inKey); wire(c,cx+24,cy,xR,cy,null);
+    c.o.push(`<rect class="box" data-p="q:${o.id}" x="${cx-24}" y="${cy-13}" width="48" height="26" rx="3"/><text class="bt" x="${cx}" y="${cy+4}">RES</text>`);
+    labels(c,L,cx,y);
+  } else {
+    wire(c,x,cy,cx-14,cy,inKey); wire(c,cx+14,cy,xR,cy,null);
+    c.o.push(`<path class="sym" data-p="q:${o.id}" d="M${cx-8} ${cy-14}Q${cx-19} ${cy} ${cx-8} ${cy+14}M${cx+8} ${cy-14}Q${cx+19} ${cy} ${cx+8} ${cy+14}"/>`);
+    if(o.kind==='SET'||o.kind==='RST') c.o.push(`<text class="ltr" x="${cx}" y="${cy+4}">${o.kind==='SET'?'S':'R'}</text>`);
+    if(o.kind==='NCOIL') c.o.push(`<path class="sym" data-p="q:${o.id}" style="stroke-width:1.8" d="M${cx-6} ${cy+10}L${cx+6} ${cy-10}"/>`);
+    labels(c,L,cx,y);
+  }
+  c.o.push('</g>');
+}
+const IC={up:'<svg viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>',
+  down:'<svg viewBox="0 0 16 16"><path d="M8 3v10M3.5 8.5L8 13l4.5-4.5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>',
+  dup:'<svg viewBox="0 0 16 16"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M3 10.5V3.5C3 3 3.4 2.5 4 2.5h6.5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>',
+  del:'<svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 9h5.6l.7-9" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>'};
+function renderLadder(){
+  let maxL=2*CW; for(const r of P.rungs) maxL=Math.max(maxL,sSize(r.logic).w);
+  const xOut=RAIL+maxL+18, xR=xOut+OW+14, W=xR+14;
+  const set=new Set([...sel.nodes,...(sel.out?[sel.out]:[])]);
+  const html=P.rungs.map((r,i)=>{
+    const c={o:[],sel:r.id===sel.rung?set:new Set()};
+    const ls=sSize(r.logic); let oh=0; r.outputs.forEach(o=>oh+=oH(o));
+    const H=Math.max(ls.h,oh,RH)+4;
+    c.o.push(`<line class="rail" x1="${RAIL}" y1="0" x2="${RAIL}" y2="${H}"/><line class="rail" x1="${xR}" y1="0" x2="${xR}" y2="${H}"/>`);
+    drawSeries(r.logic,RAIL,0,xOut-RAIL,c);
+    const key='o:'+r.logic.id; let oy=0; const cys=[];
+    for(const o of r.outputs){ cys.push(oy+CY); drawOut(o,xOut,oy,c,xR,key); oy+=oH(o); }
+    if(cys.length>1) wire(c,xOut,cys[0],xOut,cys[cys.length-1],key);
+    if(!r.outputs.length) c.o.push(`<text class="ph" x="${xOut+OW/2}" y="${CY-8}">adicione uma saída</text><line class="w" x1="${xOut}" y1="${CY}" x2="${xR}" y2="${CY}" stroke-dasharray="4 4"/>`);
+    return `<section class="rung${r.id===sel.rung?' cur':''}" data-rung="${r.id}">
+      <div class="rhead"><span class="rn">LINHA ${i+1}</span><span class="rc" data-rc="${r.id}">${esc(r.comment||'')}</span>
+      <span class="racts"><button data-ract="up" data-rid="${r.id}" title="Mover para cima" aria-label="Mover linha ${i+1} para cima">${IC.up}</button><button data-ract="down" data-rid="${r.id}" title="Mover para baixo" aria-label="Mover linha ${i+1} para baixo">${IC.down}</button><button data-ract="dup" data-rid="${r.id}" title="Duplicar linha" aria-label="Duplicar linha ${i+1}">${IC.dup}</button><button data-ract="del" data-rid="${r.id}" title="Excluir linha" aria-label="Excluir linha ${i+1}">${IC.del}</button></span></div>
+      <svg class="lad" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Linha ${i+1} do programa ladder">${c.o.join('')}</svg></section>`;
+  }).join('');
+  $('#sheet').innerHTML=html+`<button class="ghost addrung" data-act="rung-end">+ Nova linha no fim</button>`;
+  updateMonitor();
+}
+function updateMonitor(){
+  const on=sim.running;
+  document.querySelectorAll('#sheet [data-p]').forEach(el=>{
+    let v=false; if(on){ const k=el.dataset.p, t=k[0], id=k.slice(2);
+      if(t==='q') v=!!sim.q[id]; else { const f=sim.pf[id]; v=f?(t==='i'?f.in:f.out):false; } }
+    el.classList.toggle('on',v); });
+  const defs=sim.defs||collectDefs(P);
+  document.querySelectorAll('#sheet [data-v]').forEach(el=>{ const [k,a]=el.dataset.v.split(':');
+    if(k==='et') el.textContent=fmtS(sim.T[a]?sim.T[a].et:0);
+    else el.textContent=String(sim.C[a]?sim.C[a].cv:(defs.C[a]&&defs.C[a].type==='CTD'?defs.C[a].pv:0)); });
+}
+
+/* ---------- edição ---------- */
+function ensureRung(){ let r=curRung(); if(!r){ r=R_('',S_(),[]); P.rungs.push(r); sel={rung:r.id,nodes:[],out:null}; } return r; }
+function nextFree(area){
+  const used=new Set(); for(const r of P.rungs) r.outputs.forEach(o=>{const a=parseAddr(o.addr); if(a&&a.area===area) used.add(a.key);});
+  if(area==='T'||area==='C'){ for(let i=0;i<32;i++) if(!used.has(area+i)) return area+i; return area+'0'; }
+  for(let b=0;b<=LIM[area];b++) for(let i=0;i<8;i++){ const k=`${area}${b}.${i}`; if(!used.has(k)) return k; } return area+'0.0';
+}
+function insertLogic(node){
+  const r=ensureRung();
+  if(sel.nodes.length){ const loc=locate(r,sel.nodes[sel.nodes.length-1]); if(loc){ loc.series.items.splice(loc.index+1,0,node); } else r.logic.items.push(node); }
+  else r.logic.items.push(node);
+  sel={rung:r.id,nodes:[node.id],out:null}; commit(); render(); focusField('f-addr');
+}
+function addBranch(){
+  const r=ensureRung();
+  if(!sel.nodes.length){
+    if(!r.logic.items.length){ toast('Insira primeiro um contato; depois selecione-o e clique em Paralelo'); return; }
+    toast('Selecione o contato (ou vários, com Shift) que vai receber o ramo paralelo'); return; }
+  const locs=sel.nodes.map(id=>locate(r,id)).filter(Boolean);
+  if(!locs.length) return;
+  const s=locs[0].series; if(locs.some(l=>l.series!==s)){ toast('A seleção precisa estar no mesmo trecho em série'); return; }
+  const idx=locs.map(l=>l.index).sort((a,b)=>a-b), i0=idx[0], i1=idx[idx.length-1];
+  const nc=C_('NO','');
+  if(locs[0].parentP && i0===0 && i1===s.items.length-1){ locs[0].parentP.branches.push(S_(nc)); }
+  else { const seg=s.items.splice(i0,i1-i0+1); s.items.splice(i0,0,P_(S_(...seg),S_(nc))); }
+  sel={rung:r.id,nodes:[nc.id],out:null}; commit(); render(); focusField('f-addr');
+}
+function insertOut(kind){
+  const r=ensureRung(); const o=O_(kind,'');
+  if(COILS.includes(kind)) o.addr=nextFree('Q');
+  if(TIM.includes(kind)) o.addr=nextFree('T');
+  if(CNT.includes(kind)) o.addr=nextFree('C');
+  if(kind==='RES'){ const d=Object.keys(collectDefs(P).C); o.addr=d[0]||'C0'; }
+  const i=sel.out?r.outputs.findIndex(x=>x.id===sel.out):-1;
+  if(i>=0) r.outputs.splice(i+1,0,o); else r.outputs.push(o);
+  sel={rung:r.id,nodes:[],out:o.id}; commit(); render(); focusField('f-addr');
+}
+function newRung(atEnd){
+  const r=R_('',S_(),[]); const i=P.rungs.findIndex(x=>x.id===sel.rung);
+  if(atEnd||i<0) P.rungs.push(r); else P.rungs.splice(i+1,0,r);
+  sel={rung:r.id,nodes:[],out:null}; commit(); render();
+  const el=document.querySelector(`[data-rung="${r.id}"]`); if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function delSel(){
+  const r=curRung(); if(!r) return;
+  if(sel.out){ r.outputs=r.outputs.filter(o=>o.id!==sel.out); sel.out=null; }
+  else if(sel.nodes.length){ for(const id of sel.nodes){ const l=locate(r,id); if(l) l.series.items.splice(l.series.items.indexOf(l.node),1); } normalize(r.logic); sel.nodes=[]; }
+  else { toast('Selecione um elemento para excluir'); return; }
+  commit(); render();
+}
+function rungAct(act,id){
+  const i=P.rungs.findIndex(r=>r.id===id); if(i<0) return;
+  if(act==='up'&&i>0){ [P.rungs[i-1],P.rungs[i]]=[P.rungs[i],P.rungs[i-1]]; }
+  else if(act==='down'&&i<P.rungs.length-1){ [P.rungs[i+1],P.rungs[i]]=[P.rungs[i],P.rungs[i+1]]; }
+  else if(act==='dup'){ const cp=fixIds(JSON.parse(JSON.stringify({rungs:[P.rungs[i]]}).replace(/"id":"[^"]+"/g,'"id":""'))).rungs[0]; P.rungs.splice(i+1,0,cp); sel={rung:cp.id,nodes:[],out:null}; }
+  else if(act==='del'){ P.rungs.splice(i,1); if(!P.rungs.length) P.rungs.push(R_('',S_(),[])); sel={rung:P.rungs[Math.max(0,i-1)].id,nodes:[],out:null}; toast('Linha excluída. Ctrl+Z desfaz.'); }
+  else return;
+  commit(); render();
+}
+function focusField(id){ requestAnimationFrame(()=>{ const el=document.getElementById(id); if(el&&window.matchMedia('(pointer:fine)').matches){ el.focus(); el.select&&el.select(); } }); }
+
+/* ---------- inspetor ---------- */
+function selected(){ const r=curRung(); if(!r) return {}; if(sel.out) return {r,o:r.outputs.find(o=>o.id===sel.out)}; if(sel.nodes.length===1){ const l=locate(r,sel.nodes[0]); return {r,n:l&&l.node,loc:l}; } return {r}; }
+function seg(opts,cur){ return `<div class="seg" role="group">${opts.map(([k,t])=>`<button data-kind="${k}" class="${k===cur?'on':''}" aria-pressed="${k===cur}">${t}</button>`).join('')}</div>`; }
+function addrFields(raw){
+  const a=resolveAddr(raw); const sym=a&&P.tags[a.key]?P.tags[a.key].sym||'':'';
+  return `<label class="fld"><span>Endereço ou nome</span><input id="f-addr" class="mono${a||!raw?'':' bad'}" data-f="addr" list="addrs" value="${esc(raw)}" placeholder="ex.: I0.0" autocomplete="off" spellcheck="false"></label>
+  <label class="fld"><span>Nome da variável ${a?esc(dispAddr(a)):''}</span><input id="f-sym" data-f="sym" value="${esc(sym)}" placeholder="${a?'ex.: Liga':'endereço inválido'}" ${a?'':'disabled'} autocomplete="off" spellcheck="false"></label>`;
+}
+function renderInspector(){
+  const box=$('#insp'); const {r,n,o,loc}=selected(); const ri=r?P.rungs.indexOf(r)+1:0;
+  if(!r){ box.innerHTML='<div class="ihead"><span class="itype">Nada selecionado</span></div>'; return; }
+  const where=`<span class="ihint">Linha ${ri}</span>`;
+  if(o){
+    let f='';
+    if(COILS.includes(o.kind)) f=seg([['COIL','( )'],['NCOIL','( / )'],['SET','( S )'],['RST','( R )']],o.kind)+addrFields(o.addr);
+    else if(TIM.includes(o.kind)) f=seg([['TON','TON'],['TOF','TOF'],['TP','TP']],o.kind)+addrFields(o.addr)+`<label class="fld w-s"><span>Tempo (s)</span><input id="f-pt" data-f="pt" type="number" min="0" step="0.1" inputmode="decimal" value="${(o.pt/1000)}"></label>`;
+    else if(CNT.includes(o.kind)) f=seg([['CTU','CTU'],['CTD','CTD']],o.kind)+addrFields(o.addr)+`<label class="fld w-s"><span>Preset (PV)</span><input id="f-pv" data-f="pv" type="number" step="1" inputmode="numeric" value="${o.pv|0}"></label>`;
+    else f=addrFields(o.addr);
+    box.innerHTML=`<div class="ihead"><span class="itype">${KIND_LABEL[o.kind]}</span>${where}</div>${f}`; return;
+  }
+  if(n&&n.t==='C'){
+    const hasNext=loc&&loc.index<loc.series.items.length-1;
+    box.innerHTML=`<div class="ihead"><span class="itype">${KIND_LABEL[n.kind]}</span>${where}</div>${seg([['NO','NA'],['NC','NF'],['P','↑ P'],['N','↓ N']],n.kind)}${addrFields(n.addr)}
+      ${hasNext?'<button class="ghost" data-act="extend">Estender seleção →</button>':''}<button class="ghost" data-act="branch">Ramo paralelo</button>`; return;
+  }
+  if(n&&n.t==='K'){
+    const A=parseOperand(n.a),B=parseOperand(n.b);
+    box.innerHTML=`<div class="ihead"><span class="itype">Comparação</span>${where}</div>
+      <label class="fld"><span>Operando A</span><input id="f-a" class="mono${A?'':' bad'}" data-f="a" value="${esc(n.a)}" placeholder="C0.CV" spellcheck="false" autocomplete="off"></label>
+      <label class="fld w-s"><span>Operador</span><select id="f-op" data-f="op">${OPS.map(x=>`<option value="${x}" ${x===n.op?'selected':''}>${OPSYM[x]} (${x})</option>`).join('')}</select></label>
+      <label class="fld"><span>Operando B</span><input id="f-b" class="mono${B?'':' bad'}" data-f="b" value="${esc(n.b)}" placeholder="5" spellcheck="false" autocomplete="off"></label>
+      <span class="ihint">Use C0.CV, C0.PV, T0.ET ou T0.PT (em ms) ou um número inteiro.</span>`; return;
+  }
+  if(n&&n.t==='P'){ box.innerHTML=`<div class="ihead"><span class="itype">Ramo paralelo (${n.branches.length} caminhos)</span>${where}</div><button class="ghost" data-act="branch">Adicionar outro ramo em volta</button><span class="ihint">Excluir remove o bloco paralelo inteiro.</span>`; return; }
+  if(sel.nodes.length>1){ box.innerHTML=`<div class="ihead"><span class="itype">${sel.nodes.length} elementos em série</span>${where}</div><button class="ghost" data-act="branch">Criar ramo paralelo em volta</button><button class="ghost" data-act="del">Excluir</button>`; return; }
+  box.innerHTML=`<div class="ihead"><span class="itype">Linha ${ri}</span><span class="ihint">Novos contatos entram no fim da linha</span></div>
+    <label class="fld"><span>Comentário da linha</span><textarea id="f-cmt" data-f="cmt" rows="1" placeholder="O que esta linha faz?">${esc(r.comment||'')}</textarea></label>`;
+}
+function setTagSym(key,sym){ const t=P.tags[key]||(P.tags[key]={sym:'',cmt:''}); t.sym=sym.trim(); if(!t.sym&&!t.cmt&&!t.mode) delete P.tags[key]; }
+$('#insp').addEventListener('input',e=>{
+  const f=e.target.dataset.f; if(!f) return; const {r,n,o}=selected(); const v=e.target.value;
+  if(f==='addr'){ (n||o).addr=v; const a=resolveAddr(v); e.target.classList.toggle('bad',!a&&!!v.trim()); renderLadder(); }
+  else if(f==='sym'){ const it=n||o; const a=resolveAddr(it.addr); if(a){ setTagSym(a.key,v); renderLadder(); } }
+  else if(f==='a'||f==='b'){ n[f]=v; e.target.classList.toggle('bad',!parseOperand(v)); renderLadder(); }
+  else if(f==='cmt'){ r.comment=v; const el=document.querySelector(`[data-rc="${r.id}"]`); if(el) el.textContent=v; }
+});
+$('#insp').addEventListener('change',e=>{
+  const f=e.target.dataset.f; if(!f) return; const {n,o}=selected(); const v=e.target.value;
+  if(f==='addr'){ const it=n||o; const a=resolveAddr(v); if(a) it.addr=a.key; }
+  else if(f==='pt'){ o.pt=Math.max(0,Math.round(parseFloat(String(v).replace(',','.'))*1000)||0); }
+  else if(f==='pv'){ o.pv=Math.max(-32768,Math.min(32767,parseInt(v,10)||0)); }
+  else if(f==='op'){ n.op=v; }
+  else if(f==='a'||f==='b'){ const x=parseOperand(v); if(x) n[f]=x.txt; }
+  commit(); render();
+});
+$('#insp').addEventListener('click',e=>{
+  const k=e.target.closest('[data-kind]'); if(k){ const {n,o}=selected(); const it=n||o; it.kind=k.dataset.kind; commit(); render(); return; }
+  const a=e.target.closest('[data-act]'); if(a) doAct(a.dataset.act);
+});
+
+/* ---------- painel de simulação ---------- */
+function ioInputs(){ const s=usedAddrs(); const keys=new Set(); for(let i=0;i<8;i++) keys.add('I0.'+i); s.forEach(k=>{ if(k[0]==='I') keys.add(k); }); Object.keys(P.tags).forEach(k=>{ if(k[0]==='I') keys.add(k); }); return sortKeys([...keys]); }
+function ioOutputs(){ const s=usedAddrs(); const keys=new Set(); for(let i=0;i<8;i++) keys.add('Q0.'+i); s.forEach(k=>{ if(k[0]==='Q') keys.add(k); }); return sortKeys([...keys]); }
+const symOf=k=>P.tags[k]&&P.tags[k].sym?P.tags[k].sym:'';
+function renderIO(){
+  const s=usedAddrs(); const defs=collectDefs(P);
+  const ins=ioInputs().map(k=>{ const push=P.tags[k]&&P.tags[k].mode==='push'; const nm=symOf(k);
+    return `<div class="iorow"><button class="sw${push?' push':''}" data-in="${k}" aria-pressed="${!!sim.bits[k]}" aria-label="${push?'Botão':'Chave'} %${k}"></button><span class="ad">%${k}</span><span class="nm${nm?'':' none'}">${esc(nm||(s.has(k)?'sem nome':'livre'))}</span><button class="mode" data-mode="${k}" title="Trocar entre chave (mantém) e botão (só enquanto pressionado)">${push?'botão':'chave'}</button></div>`; }).join('');
+  const outs=ioOutputs().map(k=>{ const nm=symOf(k); return `<div class="iorow"><span class="lamp" data-lamp="${k}"></span><span class="ad">%${k}</span><span class="nm${nm?'':' none'}">${esc(nm||(s.has(k)?'sem nome':'livre'))}</span><span></span></div>`; }).join('');
+  const mem=sortKeys([...s].filter(k=>k[0]==='M'));
+  const tk=sortKeys(Object.keys(defs.T)), ck=sortKeys(Object.keys(defs.C));
+  $('#pane-sim').innerHTML=`<h3>Entradas <small>clique para acionar</small></h3>${ins}
+    <h3>Saídas</h3>${outs}
+    ${mem.length?`<h3>Memórias</h3><div class="chips">${mem.map(k=>`<span class="chip" data-bit="${k}">%${k}${symOf(k)?' '+esc(symOf(k)):''}</span>`).join('')}</div>`:''}
+    ${tk.length?`<h3>Temporizadores</h3>${tk.map(k=>`<div class="tc"><span><b class="mono">${k}</b> <small class="note">${defs.T[k].type}${symOf(k)?' · '+esc(symOf(k)):''}</small></span><span class="val" data-tv="${k}">0,0 / ${fmtS(defs.T[k].pt)} s</span><span class="q" data-tq="${k}">Q</span><div class="bar"><i data-tb="${k}"></i></div></div>`).join('')}`:''}
+    ${ck.length?`<h3>Contadores</h3>${ck.map(k=>`<div class="tc"><span><b class="mono">${k}</b> <small class="note">${defs.C[k].type}${symOf(k)?' · '+esc(symOf(k)):''}</small></span><span class="val" data-cv="${k}">0 / ${defs.C[k].pv}</span><span class="q" data-cq="${k}">Q</span></div>`).join('')}`:''}
+    <p class="note" style="margin-top:14px">No modo RUN você também pode clicar nos contatos de entrada direto no diagrama.</p>`;
+  updateIO();
+}
+function updateIO(){
+  const pane=$('#pane-sim'); if(pane.hidden) return; const defs=sim.defs||collectDefs(P);
+  pane.querySelectorAll('[data-in]').forEach(b=>b.setAttribute('aria-pressed',String(!!sim.bits[b.dataset.in])));
+  pane.querySelectorAll('[data-lamp]').forEach(l=>l.classList.toggle('on',sim.running&&!!sim.bits[l.dataset.lamp]));
+  pane.querySelectorAll('[data-bit]').forEach(l=>l.classList.toggle('on',sim.running&&!!sim.bits[l.dataset.bit]));
+  pane.querySelectorAll('[data-tv]').forEach(el=>{ const k=el.dataset.tv, t=sim.T[k], d=defs.T[k]; if(!d) return; const et=t?t.et:0;
+    el.textContent=`${fmtS(et)} / ${fmtS(d.pt)} s`; const b=pane.querySelector(`[data-tb="${k}"]`); if(b) b.style.width=(d.pt?Math.min(100,et/d.pt*100):0)+'%';
+    const q=pane.querySelector(`[data-tq="${k}"]`); if(q) q.classList.toggle('on',!!(t&&t.q)); });
+  pane.querySelectorAll('[data-cv]').forEach(el=>{ const k=el.dataset.cv, d=defs.C[k]; if(!d) return; const cv=sim.C[k]?sim.C[k].cv:(d.type==='CTD'?d.pv:0);
+    el.textContent=`${cv} / ${d.pv}`; const q=pane.querySelector(`[data-cq="${k}"]`); if(q) q.classList.toggle('on',sim.running&&(d.type==='CTD'?cv<=0:cv>=d.pv)); });
+}
+const pane=$('#pane-sim');
+pane.addEventListener('pointerdown',e=>{
+  const b=e.target.closest('[data-in]'); if(!b) return; const k=b.dataset.in;
+  if(P.tags[k]&&P.tags[k].mode==='push'){ e.preventDefault(); try{b.setPointerCapture(e.pointerId)}catch(_){} setIn(k,true);
+    const up=()=>{ setIn(k,false); b.removeEventListener('pointerup',up); b.removeEventListener('pointercancel',up); b.removeEventListener('lostpointercapture',up); };
+    b.addEventListener('pointerup',up); b.addEventListener('pointercancel',up); b.addEventListener('lostpointercapture',up); }
+});
+pane.addEventListener('click',e=>{
+  const b=e.target.closest('[data-in]'); if(b){ const k=b.dataset.in; if(!(P.tags[k]&&P.tags[k].mode==='push')) setIn(k,!sim.bits[k]); return; }
+  const m=e.target.closest('[data-mode]'); if(m){ const k=m.dataset.mode; const t=P.tags[k]||(P.tags[k]={sym:'',cmt:''}); t.mode=t.mode==='push'?'toggle':'push'; sim.bits[k]=false; commit(); renderIO(); if(!sim.running) updateMonitor(); }
+});
+pane.addEventListener('keydown',e=>{ const b=e.target.closest('[data-in]'); if(b&&(e.key===' '||e.key==='Enter')&&P.tags[b.dataset.in]&&P.tags[b.dataset.in].mode==='push'&&!e.repeat){ e.preventDefault(); setIn(b.dataset.in,true); const up=ev=>{ if(ev.key===e.key){ setIn(b.dataset.in,false); b.removeEventListener('keyup',up);} }; b.addEventListener('keyup',up); } });
+
+/* ---------- tabela de variáveis ---------- */
+function renderTags(){
+  const keys=sortKeys([...new Set([...Object.keys(P.tags),...usedAddrs()])]);
+  const area={I:'Entrada',Q:'Saída',M:'Memória',T:'Temporizador',C:'Contador'};
+  $('#pane-tags').innerHTML=`<p class="note" style="margin:0 0 8px">Dê nomes aos endereços. Os nomes aparecem no diagrama e podem ser digitados no lugar do endereço.</p>
+   <table class="ttab"><thead><tr><th>Endereço</th><th>Nome</th><th>Comentário</th><th></th></tr></thead><tbody>
+   ${keys.map(k=>{ const t=P.tags[k]||{}; const a=parseAddr(k); return `<tr><td class="ad" title="${area[a?a.area:'']||''}">${a?esc(dispAddr(a)):esc(k)}</td><td><input data-tk="${k}" data-tf="sym" value="${esc(t.sym||'')}" aria-label="Nome de ${k}" spellcheck="false"></td><td><input data-tk="${k}" data-tf="cmt" value="${esc(t.cmt||'')}" aria-label="Comentário de ${k}"></td><td>${P.tags[k]?`<button class="x" data-tdel="${k}" title="Apagar nome e comentário" aria-label="Apagar nome de ${k}">×</button>`:''}</td></tr>`; }).join('')}
+   </tbody></table>
+   <div class="addtag"><input id="newtag" placeholder="Novo endereço, ex.: M0.1" aria-label="Novo endereço" spellcheck="false"><button class="btn" data-act="addtag">Adicionar</button></div>`;
+}
+$('#pane-tags').addEventListener('change',e=>{ const k=e.target.dataset.tk; if(!k) return; const t=P.tags[k]||(P.tags[k]={sym:'',cmt:''}); t[e.target.dataset.tf]=e.target.value.trim(); if(!t.sym&&!t.cmt&&!t.mode) delete P.tags[k]; commit(); render(); });
+$('#pane-tags').addEventListener('click',e=>{ const d=e.target.closest('[data-tdel]'); if(d){ delete P.tags[d.dataset.tdel]; commit(); render(); return; }
+  if(e.target.closest('[data-act="addtag"]')) addTag(); });
+$('#pane-tags').addEventListener('keydown',e=>{ if(e.target.id==='newtag'&&e.key==='Enter') addTag(); });
+function addTag(){ const inp=$('#newtag'); const a=parseAddr(inp.value); if(!a){ toast('Endereço inválido. Use I0.0, Q0.0, M0.0, T0 ou C0'); return; }
+  if(!P.tags[a.key]) P.tags[a.key]={sym:'',cmt:''}; commit(); render(); const el=document.querySelector(`[data-tk="${a.key}"][data-tf="sym"]`); if(el) el.focus(); }
+
+/* ---------- avisos, status ---------- */
+function renderWarnings(){
+  const W=validate(); const c=$('#wcnt'); c.textContent=W.length; c.classList.toggle('zero',!W.length);
+  $('#pane-warn').innerHTML=W.length?`<ul class="warns">${W.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:`<div class="okmsg">Nenhum problema encontrado no programa.</div>`;
+}
+function updateStatus(){
+  const n=P.rungs.length; const W=+$('#wcnt').textContent;
+  $('#status').innerHTML=sim.running?`<span><b>RUN</b> · ciclo ≈ ${sim.cyc.toFixed(0)} ms</span><span>${sim.scans.toLocaleString('pt-BR')} varreduras</span><span>${fmtS(sim.now)} s</span>`
+    :`<span><b>STOP</b> · ${n} ${n===1?'linha':'linhas'}</span><span>${W?W+(W===1?' aviso':' avisos'):'sem avisos'}</span><span class="note">Shift+clique seleciona vários · Delete exclui · Ctrl+Z desfaz</span>`;
+}
+function renderDatalist(){
+  const opts=[]; for(const k of sortKeys(Object.keys(P.tags))){ if(P.tags[k].sym) opts.push(`<option value="${esc(P.tags[k].sym)}">${esc(k)}</option>`); }
+  usedAddrs().forEach(k=>opts.push(`<option value="${k}"></option>`));
+  $('#addrs').innerHTML=opts.join('');
+}
+function render(){ validSel(); $('#pname').value=P.name||''; renderLadder(); renderInspector(); renderIO(); renderTags(); renderWarnings(); renderDatalist(); updateStatus(); }
+
+/* ---------- eventos do diagrama ---------- */
+let skipClick=false;
+$('#sheet').addEventListener('pointerdown',e=>{
+  if(!sim.running) return; const g=e.target.closest('[data-sel]'); if(!g) return; const rs=g.closest('[data-rung]'); const r=P.rungs.find(x=>x.id===rs.dataset.rung);
+  const l=r&&locate(r,g.dataset.sel); if(!l||l.node.t!=='C') return; const a=resolveAddr(l.node.addr); if(!a||a.area!=='I') return;
+  skipClick=true; e.preventDefault();
+  if(P.tags[a.key]&&P.tags[a.key].mode==='push'){ setIn(a.key,true); const up=()=>{ setIn(a.key,false); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); }; window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up); }
+  else setIn(a.key,!sim.bits[a.key]);
+});
+$('#sheet').addEventListener('click',e=>{
+  if(skipClick){ skipClick=false; return; }
+  const ra=e.target.closest('[data-ract]'); if(ra){ rungAct(ra.dataset.ract,ra.dataset.rid); return; }
+  if(e.target.closest('[data-act="rung-end"]')){ newRung(true); return; }
+  const rs=e.target.closest('[data-rung]'); if(!rs) return; const rid=rs.dataset.rung; const r=P.rungs.find(x=>x.id===rid);
+  const g=e.target.closest('[data-sel]');
+  if(!g){ sel={rung:rid,nodes:[],out:null}; render(); if(e.target.closest('[data-rc]')) focusField('f-cmt'); return; }
+  const id=g.dataset.sel;
+  if(g.dataset.out){ sel={rung:rid,nodes:[],out:id}; render(); return; }
+  if(e.shiftKey && sel.rung===rid && sel.nodes.length){
+    const a=locate(r,sel.nodes[0]), b=locate(r,id);
+    if(a&&b&&a.series===b.series){ const i0=Math.min(a.index,b.index), i1=Math.max(a.index,b.index); sel.nodes=a.series.items.slice(i0,i1+1).map(n=>n.id); render(); return; }
+  }
+  sel={rung:rid,nodes:[id],out:null}; render();
+});
+
+/* ---------- ações ---------- */
+function doAct(act){
+  if(act.startsWith('c-')){ const k=act.slice(2); insertLogic(k==='K'?K_('C0.CV','>=','5'):C_(k,'')); return; }
+  if(act.startsWith('o-')){ insertOut(act.slice(2)); return; }
+  switch(act){
+    case 'branch': addBranch(); break;
+    case 'rung': newRung(false); break;
+    case 'undo': undo(); break;
+    case 'redo': redo(); break;
+    case 'del': delSel(); break;
+    case 'extend': { const r=curRung(); const l=locate(r,sel.nodes[sel.nodes.length-1]); if(l&&l.index<l.series.items.length-1){ sel.nodes.push(l.series.items[l.index+1].id); render(); } break; }
+  }
+}
+$('#tools').addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(b) doAct(b.dataset.act); });
+document.addEventListener('keydown',e=>{
+  const tgt=e.target; const typing=tgt.matches('input,textarea,select');
+  if(!$('#ov').hidden){ if(e.key==='Escape') closeModal(); return; }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!typing){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'&&!typing){ e.preventDefault(); redo(); return; }
+  if(typing||e.ctrlKey||e.metaKey||e.altKey) return;
+  if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); delSel(); }
+  else if(e.key==='1') doAct('c-NO'); else if(e.key==='2') doAct('c-NC'); else if(e.key==='3') doAct('o-COIL');
+  else if(e.key.toLowerCase()==='b') doAct('branch'); else if(e.key.toLowerCase()==='l') doAct('rung');
+  else if(e.key==='Escape'){ sel.nodes=[]; sel.out=null; render(); }
+});
+$('#pname').addEventListener('change',e=>{ P.name=e.target.value.trim()||'Projeto sem nome'; commit(); });
+$('#b-run').addEventListener('click',()=>setRun(!sim.running));
+document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs [data-tab]').forEach(x=>x.classList.toggle('on',x===b));
+  ['sim','tags','warn'].forEach(t=>$('#pane-'+t).hidden=t!==b.dataset.tab); updateIO(); }));
+
+/* ---------- arquivos ---------- */
+let dl=null;
+(async()=>{ try{ if(window.claude&&window.claude.use) dl=await window.claude.use('downloads'); }catch(_){ dl=null; } })();
+async function saveFile(name,data){
+  if(dl){ try{ await dl.save({filename:name,data}); toast('Arquivo salvo: '+name); }
+    catch(e){ const c=e&&e.code; toast(c==='declined'?'Download cancelado':c==='rate_limited'?'Aguarde um instante e tente de novo':'Não foi possível salvar o arquivo aqui. Use o botão Copiar.'); } return; }
+  try{ const blob=data instanceof Blob?data:new Blob([data]); const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); toast('Download iniciado: '+name); }
+  catch(_){ toast('Download indisponível nesta visualização. Use o botão Copiar.'); }
+}
+const CRC=(()=>{const t=new Uint32Array(256); for(let n=0;n<256;n++){let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0;} return t;})();
+function crc32(b){ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=CRC[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function makeZip(files){
+  const enc=new TextEncoder(); const parts=[], cd=[]; let off=0;
+  const d=new Date(); const dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF, dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+  for(const f of files){
+    const name=enc.encode(f.name), data=typeof f.data==='string'?enc.encode(f.data):f.data, crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,dt,true); h.setUint16(12,dd,true); h.setUint32(14,crc,true); h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,name.length,true); h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer),name,data);
+    const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true);
+    c.setUint16(12,dt,true); c.setUint16(14,dd,true); c.setUint32(16,crc,true); c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,name.length,true);
+    c.setUint16(30,0,true); c.setUint16(32,0,true); c.setUint16(34,0,true); c.setUint16(36,0,true); c.setUint32(38,0,true); c.setUint32(42,off,true);
+    cd.push(new Uint8Array(c.buffer),name); off+=30+name.length+data.length;
+  }
+  let cds=0; cd.forEach(x=>cds+=x.length);
+  const e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,cds,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...cd,new Uint8Array(e.buffer)],{type:'application/zip'});
+}
+const fileBase=()=>(P.name||'projeto').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40)||'projeto';
+function projectJSON(){ return JSON.stringify({app:'bancada-ladder',versao:1,salvoEm:new Date().toISOString(),...P},null,1); }
+function loadProject(obj,msg){
+  if(!obj||!Array.isArray(obj.rungs)) throw new Error('arquivo não é um projeto da Bancada Ladder');
+  const p=fixIds({name:obj.name||'Projeto importado',tags:obj.tags||{},rungs:obj.rungs});
+  setRun(false); P=p; sel={rung:P.rungs[0].id,nodes:[],out:null}; sim.bits={}; commit(); render(); closeModal(); toast(msg||'Projeto aberto. Desfazer volta ao anterior.');
+}
+$('#fileopen').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{ try{ loadProject(JSON.parse(rd.result),'Arquivo “'+f.name+'” aberto'); }catch(err){ toast('Não consegui abrir: '+err.message); } };
+  rd.readAsText(f); e.target.value=''; });
+
+/* ---------- exportação ---------- */
+const RESERVED=new Set('AND OR XOR NOT MOD IF THEN ELSE ELSIF END_IF CASE OF FOR TO BY DO WHILE REPEAT UNTIL RETURN EXIT TRUE FALSE VAR END_VAR PROGRAM FUNCTION FUNCTION_BLOCK BOOL INT DINT TIME TON TOF TP CTU CTD R_TRIG F_TRIG AT'.split(' '));
+function identFrom(s,fb){ let x=String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9_]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,''); if(!x||/^\d/.test(x)) x=fb; return x.slice(0,28); }
+function gen(D){
+  const defs=collectDefs(P), used=usedAddrs(); const decl=[], body=[]; let nE=0,nM=0;
+  const names={}, taken=new Set(['rlo']);
+  for(const k of sortKeys([...used])){ const a=parseAddr(k); if(!a||!/[IQM]/.test(a.area)) continue;
+    let nm=D.symbolic?identFrom(symOf(k),''):''; if(!nm||RESERVED.has(nm.toUpperCase())||taken.has(nm.toLowerCase())) nm=k.replace('.','_');
+    taken.add(nm.toLowerCase()); names[k]=nm; }
+  sortKeys(Object.keys(defs.T)).forEach(k=>{ taken.add(k.toLowerCase()); decl.push({name:k,type:D.timerType(defs.T[k].type),fb:true,cmt:symOf(k)}); });
+  sortKeys(Object.keys(defs.C)).forEach(k=>{ const d=defs.C[k]; decl.push({name:k+'_CV',type:D.INT,init:d.type==='CTD'?d.pv:0,cmt:`valor do contador ${k}${symOf(k)?' ('+symOf(k)+')':''}, ${d.type} PV=${d.pv}`}); });
+  const bit=a=>D.bit(a,names[a.key]);
+  const opBool=raw=>{ const a=resolveAddr(raw); if(!a) return 'FALSE';
+    if(a.area==='T') return defs.T[a.key]?D.v(a.key)+'.Q':'FALSE';
+    if(a.area==='C'){ const d=defs.C[a.key]; if(!d) return 'FALSE'; return '('+D.v(a.key+'_CV')+(d.type==='CTD'?' <= 0':' >= '+d.pv)+')'; }
+    return bit(a); };
+  const opNum=raw=>{ const o=parseOperand(raw); if(!o) return '0'; if(o.k==='const') return String(o.v);
+    if(o.area==='C'){ if(o.f==='CV') return defs.C[o.key]?D.v(o.key+'_CV'):'0'; if(o.f==='PV') return String(defs.C[o.key]?defs.C[o.key].pv:0); return '0'; }
+    if(o.f==='ET') return defs.T[o.key]?`TIME_TO_DINT(${D.v(o.key)}.ET)`:'0'; if(o.f==='PT') return String(defs.T[o.key]?defs.T[o.key].pt:0); return '0'; };
+  const R=D.v('rlo');
+  P.rungs.forEach((r,i)=>{
+    const pre=[];
+    const ex=s=>s.items.length?s.items.map(nx).join(' AND '):'TRUE';
+    const nx=n=>{
+      if(n.t==='C'){ const b=opBool(n.addr); if(n.kind==='NO') return b; if(n.kind==='NC') return 'NOT '+b;
+        const nm=(n.kind==='P'?'RT_':'FT_')+(++nE); decl.push({name:nm,type:D.edge(n.kind),fb:true,cmt:`borda ${n.kind==='P'?'de subida':'de descida'} (linha ${i+1})`}); pre.push(`${D.v(nm)}(CLK := ${b});`); return D.v(nm)+'.Q'; }
+      if(n.t==='K'){ const op=n.op==='=='?'=':n.op; return `(${opNum(n.a)} ${op} ${opNum(n.b)})`; }
+      return '('+n.branches.map(b=>b.items.length>1?'('+ex(b)+')':ex(b)).join(' OR ')+')';
+    };
+    body.push(D.cmt(`Linha ${i+1}${r.comment?': '+r.comment:''}`));
+    if(!r.outputs.length){ body.push(D.cmt('linha sem saída: ignorada'),''); return; }
+    const e=ex(r.logic); pre.forEach(x=>body.push(x)); body.push(`${R} := ${e};`);
+    for(const o of r.outputs){ const a=resolveAddr(o.addr); const wr=a&&(a.area==='Q'||a.area==='M');
+      if(o.kind==='COIL'&&wr) body.push(`${bit(a)} := ${R};`);
+      else if(o.kind==='NCOIL'&&wr) body.push(`${bit(a)} := NOT ${R};`);
+      else if(o.kind==='SET'&&wr) body.push(`IF ${R} THEN ${bit(a)} := TRUE; END_IF;`);
+      else if(o.kind==='RST'&&wr) body.push(`IF ${R} THEN ${bit(a)} := FALSE; END_IF;`);
+      else if(TIM.includes(o.kind)&&a&&a.area==='T'&&defs.T[a.key]&&defs.T[a.key].id===o.id) body.push(`${D.v(a.key)}(IN := ${R}, PT := T#${defs.T[a.key].pt}MS);`);
+      else if(CNT.includes(o.kind)&&a&&a.area==='C'&&defs.C[a.key]&&defs.C[a.key].id===o.id){
+        const m='CM_'+(++nM), cv=D.v(a.key+'_CV'); decl.push({name:m,type:D.BOOL,cmt:`memória de borda do contador ${a.key}`});
+        body.push(o.kind==='CTU'?`IF ${R} AND NOT ${D.v(m)} AND ${cv} < 32767 THEN ${cv} := ${cv} + 1; END_IF;`:`IF ${R} AND NOT ${D.v(m)} AND ${cv} > -32768 THEN ${cv} := ${cv} - 1; END_IF;`);
+        body.push(`${D.v(m)} := ${R};`); }
+      else if(o.kind==='RES'&&a&&a.area==='C'&&defs.C[a.key]) body.push(`IF ${R} THEN ${D.v(a.key+'_CV')} := ${defs.C[a.key].type==='CTD'?defs.C[a.key].pv:0}; END_IF;`);
+      else body.push(D.cmt(`saída ${KIND_LABEL[o.kind]} ignorada: endereço inválido`));
+    }
+    body.push('');
+  });
+  return {decl,body,names};
+}
+function tiaSource(){
+  const name=identFrom(P.name,'LadderSim');
+  const D={symbolic:false,v:n=>'#'+n,bit:a=>'%'+a.key,cmt:t=>'// '+t.replace(/\n/g,' '),INT:'Int',BOOL:'Bool',
+    timerType:t=>({TON:'TON_TIME',TOF:'TOF_TIME',TP:'TP_TIME'})[t],edge:k=>k==='P'?'R_TRIG':'F_TRIG'};
+  const g=gen(D);
+  const vl=g.decl.map(d=>{ const attr=d.fb?` {InstructionName := '${d.type}'; LibVersion := '1.0'}`:''; return `      ${d.name}${attr} : ${d.type}${d.init!=null?' := '+d.init:''};${d.cmt?'   // '+d.cmt:''}`; });
+  const tagLines=sortKeys(Object.keys(P.tags).filter(k=>P.tags[k].sym||P.tags[k].cmt)).map(k=>{ const a=parseAddr(k); return `//   ${(a?dispAddr(a):k).padEnd(8)} ${(P.tags[k].sym||'').padEnd(18)} ${P.tags[k].cmt||''}`; });
+  const fb=`FUNCTION_BLOCK "${name}"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+${vl.length?`   VAR \n${vl.join('\n')}\n   END_VAR\n`:''}   VAR_TEMP
+      rlo : Bool;   // resultado lógico da linha (RLO)
+   END_VAR
+
+
+BEGIN
+	// Programa "${(P.name||'').replace(/"/g,"'")}" exportado da Bancada Ladder
+	// Endereços absolutos (%I, %Q, %M). Variáveis do projeto:
+${tagLines.map(l=>'\t'+l).join('\n')||'\t//   (nenhuma variável nomeada)'}
+
+${g.body.map(l=>l?'\t'+l:'\t').join('\n')}
+END_FUNCTION_BLOCK
+
+DATA_BLOCK "${name}_DB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+"${name}"
+
+BEGIN
+
+END_DATA_BLOCK
+`;
+  const ob=`ORGANIZATION_BLOCK "Main"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+
+BEGIN
+	"${name}_DB"();
+END_ORGANIZATION_BLOCK
+`;
+  return {name,fb,ob};
+}
+function stSource(){
+  const name=identFrom(P.name,'LadderSim');
+  const D={symbolic:true,v:n=>n,bit:(a,nm)=>nm,cmt:t=>'(* '+t.replace(/\*\)/g,'* )').replace(/\n/g,' ')+' *)',INT:'INT',BOOL:'BOOL',
+    timerType:t=>t,edge:k=>k==='P'?'R_TRIG':'F_TRIG'};
+  const g=gen(D);
+  const io=Object.keys(g.names).map(k=>{ const a=parseAddr(k); return {name:g.names[k],type:'BOOL',addr:`%${a.area}X${a.byte}.${a.bit}`,cmt:[symOf(k)&&g.names[k]!==symOf(k)?symOf(k):'',P.tags[k]&&P.tags[k].cmt||''].filter(Boolean).join(' - ')||`%${k}`}; });
+  const all=[...io,...g.decl,{name:'rlo',type:'BOOL',cmt:'resultado lógico da linha'}];
+  const declTxt=all.map(d=>`    ${d.name}${d.addr?' AT '+d.addr:''} : ${d.type}${d.init?' := '+d.init:''};${d.cmt?' (* '+d.cmt.replace(/\*\)/g,'* )')+' *)':''}`).join('\n');
+  const code=g.body.join('\n');
+  const st=`PROGRAM ${name}\nVAR\n${declTxt}\nEND_VAR\n\n${code}\nEND_PROGRAM\n`;
+  const xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const typeXml=t=>['BOOL','INT'].includes(t)?`<${t}/>`:`<derived name="${t}"/>`;
+  const vars=all.map(d=>`          <variable name="${xe(d.name)}"${d.addr?` address="${d.addr}"`:''}>
+            <type>${typeXml(d.type)}</type>${d.init?`
+            <initialValue><simpleValue value="${d.init}"/></initialValue>`:''}${d.cmt?`
+            <documentation><xhtml xmlns="http://www.w3.org/1999/xhtml">${xe(d.cmt)}</xhtml></documentation>`:''}
+          </variable>`).join('\n');
+  const now=new Date().toISOString().replace(/\.\d+Z$/,'');
+  const xml=`<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://www.plcopen.org/xml/tc6_0200">
+  <fileHeader companyName="Bancada Ladder" productName="Bancada Ladder" productVersion="1.0" creationDateTime="${now}"/>
+  <contentHeader name="${xe(P.name||name)}" modificationDateTime="${now}">
+    <coordinateInfo>
+      <fbd><scaling x="1" y="1"/></fbd>
+      <ld><scaling x="1" y="1"/></ld>
+      <sfc><scaling x="1" y="1"/></sfc>
+    </coordinateInfo>
+  </contentHeader>
+  <types>
+    <dataTypes/>
+    <pous>
+      <pou name="${name}" pouType="program">
+        <interface>
+          <localVars>
+${vars}
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">${xe(code)}</xhtml>
+          </ST>
+        </body>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations/>
+  </instances>
+</project>
+`;
+  return {name,st,xml};
+}
+function tagReport(){ return sortKeys(Object.keys(P.tags)).map(k=>{ const a=parseAddr(k); return `  ${(a?dispAddr(a):k).padEnd(9)}${(P.tags[k].sym||'-').padEnd(20)}${P.tags[k].cmt||''}`; }).join('\n')||'  (nenhuma variável nomeada)'; }
+let expTab='tia';
+function openExport(){
+  const W=validate();
+  const t=tiaSource(), s=stSource();
+  const tabs=`<div class="mtabs" role="tablist"><button data-et="tia" class="${expTab==='tia'?'on':''}">TIA Portal (S7-1200/1500)</button><button data-et="mt" class="${expTab==='mt'?'on':''}">MasterTool IEC XE</button></div>`;
+  const warn=W.length?`<div class="callout" style="border-color:var(--warn);background:var(--warn-soft)">O programa tem ${W.length} ${W.length===1?'aviso':'avisos'} (veja a aba Avisos). A exportação funciona, mas trechos com endereço inválido são ignorados.</div>`:'';
+  let main;
+  if(expTab==='tia'){
+    main=`<p>O pacote traz um bloco de função em <b>SCL</b> com a mesma lógica do seu ladder, a instância de dados e um OB1 opcional que chama o bloco. As entradas e saídas usam os endereços absolutos (%I, %Q, %M).</p>
+    <ol class="steps"><li>Baixe o pacote e descompacte. No TIA Portal, na árvore do CLP, abra <b>Fontes externas</b> → <b>Adicionar novo arquivo externo</b> e escolha <code>${t.name}.scl</code>.</li>
+    <li>Clique com o botão direito no arquivo → <b>Gerar blocos a partir da fonte</b>. Surgem o FB <code>"${t.name}"</code> e o DB <code>"${t.name}_DB"</code>.</li>
+    <li>No <b>Main [OB1]</b>, arraste o FB para uma rede e escolha a instância <code>${t.name}_DB</code>. Em projeto novo, você pode importar <code>Main_OB1.scl</code> do mesmo jeito (ele substitui o OB1).</li>
+    <li>Opcional: crie as variáveis da lista no <b>PLC tags</b> com os mesmos endereços; o TIA passa a mostrar os nomes no bloco.</li></ol>
+    <div class="callout">O TIA Portal não converte SCL em ladder automaticamente. O bloco roda igual ao simulado, inclusive no PLCSIM; se o professor pedir o programa em LAD, use o diagrama daqui como referência para redesenhar.</div>`;
+  } else {
+    main=`<p>O pacote traz um programa (POU) em <b>Texto Estruturado</b> no formato <b>PLCopen XML</b>, que o MasterTool IEC XE importa direto, e o mesmo código em <code>.st</code> para copiar e colar.</p>
+    <ol class="steps"><li>Baixe o pacote e descompacte. No MasterTool IEC XE, com o projeto aberto, use <b>Projeto → Importar PLCopenXML…</b> e escolha <code>${s.name}.xml</code>.</li>
+    <li>Marque a POU <code>${s.name}</code> na lista e confirme.</li>
+    <li>Chame o programa: em <b>Configuração de Tarefas → MainTask</b>, adicione a chamada de <code>${s.name}</code>, ou escreva <code>${s.name}();</code> dentro do <code>MainPrg</code>.</li>
+    <li>As variáveis de E/S foram declaradas com <code>AT %IX</code>, <code>%QX</code> e <code>%MX</code>. Ajuste para os endereços do módulo de E/S do seu CLP (Nexto, Hadron etc.) se forem outros.</li></ol>
+    <div class="callout">Sem o XML? Crie um programa em ST, cole a parte entre <code>VAR</code> e <code>END_VAR</code> na área de declaração e o restante na área de implementação.</div>`;
+  }
+  const code=expTab==='tia'?t.fb:s.st;
+  openModal('Exportar programa',`${tabs}${warn}${main}
+    <div class="row"><button class="btn primary" data-x="zip">Baixar pacote .zip</button><button class="btn" data-x="copy">Copiar código</button>${expTab==='mt'?'<button class="btn" data-x="copyxml">Copiar XML</button>':''}</div>
+    <h4>${expTab==='tia'?t.name+'.scl':s.name+'.st'}</h4><div class="codewrap"><pre class="code" id="codepre">${esc(code)}</pre></div>`);
+  $('#mbody').onclick=async e=>{
+    const tb=e.target.closest('[data-et]'); if(tb){ expTab=tb.dataset.et; openExport(); return; }
+    const x=e.target.closest('[data-x]'); if(!x) return;
+    if(x.dataset.x==='copy') copyText(code);
+    if(x.dataset.x==='copyxml') copyText(s.xml);
+    if(x.dataset.x==='zip'){
+      const bom='﻿';
+      if(expTab==='tia'){
+        const readme=`Bancada Ladder - exportação para TIA Portal\nProjeto: ${P.name}\n\nArquivos:\n  ${t.name}.scl   bloco de função (FB) + bloco de dados de instância (DB)\n  Main_OB1.scl     OB1 que chama o bloco (opcional; substitui o OB1 existente)\n\nComo importar:\n  1. TIA Portal > CLP > Fontes externas > Adicionar novo arquivo externo > ${t.name}.scl\n  2. Botão direito no arquivo > Gerar blocos a partir da fonte\n  3. Chame "${t.name}_DB" no Main [OB1] (ou importe Main_OB1.scl)\n\nVariáveis (crie em PLC tags para ver os nomes):\n${tagReport()}\n\nObservação: contadores foram escritos em SCL com contagem por borda, com o mesmo\ncomportamento do simulador (CTU: Q = CV >= PV; CTD: Q = CV <= 0).\n`;
+        await saveFile(`${fileBase()}_TIA.zip`,makeZip([{name:t.name+'.scl',data:bom+t.fb},{name:'Main_OB1.scl',data:bom+t.ob},{name:'LEIAME.txt',data:bom+readme}]));
+      } else {
+        const readme=`Bancada Ladder - exportação para MasterTool IEC XE (Altus)\nProjeto: ${P.name}\n\nArquivos:\n  ${s.name}.xml   programa em PLCopen XML (Projeto > Importar PLCopenXML...)\n  ${s.name}.st    mesmo programa em texto, para copiar e colar\n\nDepois de importar, chame ${s.name} na MainTask ou escreva ${s.name}(); no MainPrg.\nAs E/S estão declaradas com AT %IX/%QX/%MX; ajuste aos endereços do seu hardware.\n\nVariáveis:\n${tagReport()}\n`;
+        await saveFile(`${fileBase()}_MasterTool.zip`,makeZip([{name:s.name+'.xml',data:s.xml},{name:s.name+'.st',data:bom+s.st},{name:'LEIAME.txt',data:bom+readme}]));
+      }
+    }
+  };
+}
+async function copyText(txt){
+  try{ await navigator.clipboard.writeText(txt); toast('Código copiado'); }
+  catch(_){ const pre=$('#codepre'); if(pre){ const rg=document.createRange(); rg.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); } toast('Texto selecionado: use Ctrl+C para copiar'); }
+}
+
+/* ---------- projeto ---------- */
+function savedList(){ try{ return JSON.parse(lsGet(LS_SAVED)||'{}')||{}; }catch(_){ return {}; } }
+function openProject(){
+  const L=savedList(); const names=Object.keys(L).sort((a,b)=>(L[b].at||'').localeCompare(L[a].at||''));
+  openModal('Projeto',`
+    <h4>Este projeto</h4>
+    <div class="row"><button class="btn primary" data-p="savels">Salvar neste navegador</button><button class="btn" data-p="dl">Baixar arquivo .json</button><button class="btn" data-p="open">Abrir arquivo .json</button></div>
+    <p class="note">O navegador guarda uma cópia automática enquanto você edita. Para levar o projeto a outro computador ou entregar ao professor, baixe o arquivo .json e abra-o aqui depois.</p>
+    <h4>Salvos neste navegador</h4>
+    ${names.length?`<ul class="saved">${names.map(n=>`<li><span>${esc(n)}</span><small>${L[n].at?new Date(L[n].at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):''}</small><button class="btn" data-p="ld" data-n="${esc(n)}">Abrir</button><button class="btn" data-p="rm" data-n="${esc(n)}">Excluir</button></li>`).join('')}</ul>`:'<p class="note">Nenhum projeto salvo ainda.</p>'}
+    <h4>Começar outro</h4>
+    <div class="cards"><button class="card" data-p="new"><b>Projeto em branco</b><span>Uma linha vazia para começar do zero.</span></button>
+    ${EXAMPLES.map((x,i)=>`<button class="card" data-p="ex" data-i="${i}"><b>${esc(x.name)}</b><span>${esc(x.desc)}</span></button>`).join('')}</div>`);
+  $('#mbody').onclick=e=>{
+    const b=e.target.closest('[data-p]'); if(!b) return; const a=b.dataset.p;
+    if(a==='savels'){ const L2=savedList(); L2[P.name||'Projeto']={at:new Date().toISOString(),data:P}; if(lsSet(LS_SAVED,JSON.stringify(L2))){ toast('Salvo como “'+(P.name||'Projeto')+'”'); openProject(); } else toast('Este navegador não permite salvar aqui. Baixe o arquivo .json.'); }
+    else if(a==='dl') saveFile(fileBase()+'.json',projectJSON());
+    else if(a==='open') $('#fileopen').click();
+    else if(a==='ld'){ const L2=savedList(); const it=L2[b.dataset.n]; if(it) loadProject(JSON.parse(JSON.stringify(it.data))); }
+    else if(a==='rm'){ if(b.dataset.c){ const L2=savedList(); delete L2[b.dataset.n]; lsSet(LS_SAVED,JSON.stringify(L2)); openProject(); } else { b.dataset.c='1'; b.textContent='Confirmar'; b.style.borderColor='var(--danger)'; b.style.color='var(--danger)'; } }
+    else if(a==='new') loadProject(blank(),'Projeto em branco. Desfazer volta ao anterior.');
+    else if(a==='ex') loadProject(EXAMPLES[+b.dataset.i].make(),'Exemplo aberto. Desfazer volta ao anterior.');
+  };
+}
+function openHelp(){
+  openModal('Como usar',`
+   <ol class="steps">
+    <li><b>Monte a linha.</b> Clique numa linha e use a barra de instruções: contatos entram em série depois do elemento selecionado; saídas entram na coluna da direita.</li>
+    <li><b>Ramo paralelo (OU).</b> Selecione um contato, ou vários com <kbd>Shift</kbd>+clique ou “Estender seleção”, e clique em <b>Paralelo</b>. Um contato novo aparece embaixo, ligado em paralelo. Clique na barra vertical de um ramo para selecioná-lo inteiro.</li>
+    <li><b>Endereços.</b> Digite <code>I0.0</code> a <code>I7.7</code> (entradas), <code>Q0.0</code> a <code>Q7.7</code> (saídas), <code>M0.0</code> a <code>M31.7</code> (memórias), <code>T0</code> a <code>T31</code> e <code>C0</code> a <code>C31</code>. Um contato <code>T0</code> lê a saída Q do temporizador; <code>C0</code> lê a saída Q do contador. Você pode digitar o nome da variável no lugar do endereço.</li>
+    <li><b>Simule.</b> Clique em <b>RUN</b>. Fios verdes conduzem; contatos verdes estão fechados. Acione as entradas pelo painel ou clicando nos contatos de entrada. Em “Variáveis” você troca cada entrada entre <i>chave</i> (mantém) e <i>botão</i> (só enquanto pressionado).</li>
+    <li><b>Salve e exporte.</b> Em <b>Projeto</b> você salva no navegador, baixa ou abre o arquivo .json. Em <b>Exportar</b> você gera o pacote para TIA Portal ou MasterTool IEC XE.</li>
+   </ol>
+   <h4>Como o simulador executa</h4>
+   <p>Como num CLP real, o programa roda em ciclos (varreduras) de cerca de 10 ms, de cima para baixo, linha por linha. Uma saída escrita numa linha já vale para as linhas de baixo no mesmo ciclo. RUN sempre começa do zero: saídas, memórias, temporizadores e contadores zerados.</p>
+   <h4>Atalhos</h4>
+   <p><kbd>1</kbd> contato NA · <kbd>2</kbd> contato NF · <kbd>3</kbd> bobina · <kbd>B</kbd> paralelo · <kbd>L</kbd> nova linha · <kbd>Delete</kbd> exclui · <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz · <kbd>Ctrl</kbd>+<kbd>Y</kbd> refaz</p>`);
+  $('#mbody').onclick=null;
+}
+$('#b-proj').addEventListener('click',openProject);
+$('#b-exp').addEventListener('click',openExport);
+$('#b-help').addEventListener('click',openHelp);
+
+/* ---------- modal e toast ---------- */
+let lastFocus=null;
+function openModal(title,html){ if($('#ov').hidden) lastFocus=document.activeElement; $('#mtitle').textContent=title; $('#mbody').innerHTML=html; $('#ov').hidden=false; $('#mclose').focus(); }
+function closeModal(){ if($('#ov').hidden) return; $('#ov').hidden=true; if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+$('#mclose').addEventListener('click',closeModal);
+$('#ov').addEventListener('click',e=>{ if(e.target.id==='ov') closeModal(); });
+let tt=null;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(tt); tt=setTimeout(()=>t.hidden=true,2800); }
+
+/* ---------- início ---------- */
+const topEl=$('#top');
+const setTop=()=>document.documentElement.style.setProperty('--toph',topEl.offsetHeight+'px');
+try{ new ResizeObserver(setTop).observe(topEl); }catch(_){ window.addEventListener('resize',setTop); }
+setTop();
+(function init(){
+  let p=null; const raw=lsGet(LS_CUR);
+  if(raw){ try{ const o=JSON.parse(raw); if(o&&Array.isArray(o.rungs)) p=fixIds(o); }catch(_){} }
+  P=p||EXAMPLES[0].make(); sel={rung:P.rungs[0]?P.rungs[0].id:null,nodes:[],out:null};
+  hist=[JSON.stringify(P)]; hp=0; sim.defs=collectDefs(P); render();
+})();
+</script>
+
+</body></html>
