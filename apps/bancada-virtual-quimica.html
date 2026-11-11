@@ -1,0 +1,855 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Bancada Virtual</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: bancada 3D à esquerda (o que a turma vê no projetor), painel de procedimento à direita; no celular, empilha. */
+:root{
+  --bg:#e9eeec; --surface:#ffffff; --surface-2:#f3f6f5; --ink:#15201e; --muted:#566562; --line:#d2dbd8;
+  --accent:#0d7a6a; --accent-ink:#ffffff; --accent-soft:#d6efe9;
+  --good:#1b8a4b; --good-soft:#dcf2e4; --bad:#c03636; --bad-soft:#f8e0e0; --warn:#a86a12;
+  --stage:#182024; --stage-ink:#e6eeeb;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10171a; --surface:#172124; --surface-2:#1d292d; --ink:#e3ebe8; --muted:#94a5a0; --line:#2a383b;
+  --accent:#3fc4ac; --accent-ink:#06201b; --accent-soft:#183a35;
+  --good:#4fcf86; --good-soft:#163526; --bad:#ff7b7b; --bad-soft:#3a1d1d; --warn:#e7a948;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#10171a; --surface:#172124; --surface-2:#1d292d; --ink:#e3ebe8; --muted:#94a5a0; --line:#2a383b;
+  --accent:#3fc4ac; --accent-ink:#06201b; --accent-soft:#183a35;
+  --good:#4fcf86; --good-soft:#163526; --bad:#ff7b7b; --bad-soft:#3a1d1d; --warn:#e7a948;
+  color-scheme:dark }
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+*{box-sizing:border-box}
+.app{display:grid;grid-template-rows:auto auto minmax(0,1fr);height:100%;gap:10px;padding-block:12px;max-width:1500px;margin:0 auto}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font:800 clamp(1.5rem,2.6vw,2.1rem)/1 var(--display);margin:0;letter-spacing:-.01em}
+.brand span{color:var(--muted);font-size:.9rem}
+.score{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.team{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:999px;padding:5px 6px 5px 14px;font:600 .95rem var(--body);cursor:pointer}
+.team .tp{font:600 1.15rem var(--mono);background:var(--surface-2);border-radius:999px;padding:1px 12px;min-width:2.6em;text-align:center;font-variant-numeric:tabular-nums}
+.team.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.team.on .tp{background:var(--accent);color:var(--accent-ink)}
+.score small{color:var(--muted);font-size:.8rem}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.tab{border:0;background:transparent;color:var(--muted);font:600 .98rem var(--body);padding:8px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.tab:hover{background:var(--surface)}
+.tab.on{background:var(--ink);color:var(--bg)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,430px);gap:14px;min-height:0}
+.stage{position:relative;border-radius:16px;overflow:hidden;background:var(--stage);min-height:320px}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;left:14px;top:12px;color:var(--stage-ink);font:600 clamp(1.1rem,2.2vw,1.7rem)/1.25 var(--mono);
+  text-shadow:0 1px 6px rgba(0,0,0,.6);pointer-events:none;font-variant-numeric:tabular-nums}
+.hud small{display:block;font:500 .82rem var(--body);opacity:.75;letter-spacing:.03em}
+.hint{position:absolute;right:12px;bottom:10px;color:var(--stage-ink);opacity:.6;font-size:.8rem;pointer-events:none}
+.fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;color:var(--stage-ink);text-align:center}
+.fallback div{max-width:42ch}
+.swatchbig{width:120px;height:120px;border-radius:50%;margin:16px auto 0;border:2px solid rgba(255,255,255,.25);transition:background .6s}
+.panel{overflow:auto;min-height:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 18px 24px}
+.panel h2{font:800 1.45rem/1.15 var(--display);margin:0 0 6px;text-wrap:balance}
+.panel h3{font:700 .78rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+.lede{color:var(--muted);margin:0 0 4px}
+.card{background:var(--surface-2);border-radius:12px;padding:12px 14px}
+.stack{display:grid;gap:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:600 .92rem var(--body);
+  padding:8px 12px;border-radius:10px;cursor:pointer;line-height:1.2}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sel{border-color:var(--accent);background:var(--accent-soft)}
+.btn.ok{border-color:var(--good);background:var(--good-soft);color:var(--good)}
+.btn.no{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.btn.big{padding:12px 16px;font-size:1rem}
+.btn:focus-visible,.tab:focus-visible,.team:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--surface);color:var(--ink);font:600 .9rem var(--body);padding:8px 12px;cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ro{background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.ro b{display:block;font:600 1.6rem/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.ro span{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.chart{width:100%;height:190px;display:block;background:var(--surface-2);border-radius:12px}
+.fb{margin:8px 0 0;font-size:.95rem}
+.fb.good{color:var(--good)} .fb.bad{color:var(--bad)} .fb.warn{color:var(--warn)}
+.q{font-weight:600;margin:0 0 8px}
+.qopts{display:grid;gap:6px}
+.qopts .btn{text-align:left;font-weight:500}
+.item{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .name{font-weight:600}
+.item .name em{font-style:normal;font-family:var(--mono);color:var(--muted);font-weight:500;margin-left:6px}
+.dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
+.dot.sel{outline:3px solid var(--ink);outline-offset:1px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;padding:3px 10px 3px 4px;border-radius:999px;background:var(--surface-2)}
+.chip i{width:18px;height:18px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+.scale{height:22px;border-radius:6px;margin-top:4px}
+.ticks{display:flex;justify-content:space-between;font:500 .75rem var(--mono);color:var(--muted)}
+.log{list-style:none;margin:0;padding:0;font-size:.92rem;display:grid;gap:6px}
+.log li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px}
+.log time{font:500 .82rem var(--mono);color:var(--muted)}
+input[type=text],input[type=number]{font:600 1rem var(--mono);padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);width:9em}
+label.chk{display:flex;gap:8px;align-items:center;font-size:.92rem;color:var(--muted)}
+.toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:12px;font-weight:600;transform:translateY(140%);transition:transform .3s;z-index:20;max-width:min(420px,calc(100vw - 32px))}
+.toast.show{transform:none}
+.formula{font-family:var(--mono);background:var(--surface-2);padding:2px 6px;border-radius:6px}
+@media (max-width:860px){
+  .app{height:auto}
+  .main{grid-template-columns:1fr}
+  .stage{height:46vh}
+  .panel{overflow:visible}
+}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><h1>Bancada Virtual</h1><span>Laboratório de Química · experimentos digitais</span></div>
+    <div class="score" id="score"></div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="Estações da bancada">
+    <button class="tab on" data-st="seg">Segurança</button>
+    <button class="tab" data-st="tit">Titulação</button>
+    <button class="tab" data-st="chama">Teste de chama</button>
+    <button class="tab" data-st="rep">Repolho roxo</button>
+    <button class="tab" data-st="cad">Caderno</button>
+  </nav>
+  <main class="main">
+    <section class="stage" id="stage" aria-label="Bancada 3D">
+      <div class="hud" id="hud"></div>
+      <div class="hint" id="hint">Arraste para girar · role para aproximar</div>
+      <div class="fallback" id="fallback" hidden><div>
+        <p><b>A cena 3D não carregou neste computador.</b><br>Todos os experimentos continuam funcionando pelo painel ao lado.</p>
+        <div class="swatchbig" id="fbSwatch"></div>
+      </div></div>
+    </section>
+    <aside class="panel" id="panel">
+
+      <section data-p="seg">
+        <h2>Antes de vestir o jaleco</h2>
+        <p class="lede">Para cada atitude, a equipe decide: faz parte do laboratório ou é proibida? Uma delas é armadilha clássica.</p>
+        <div id="segList"></div>
+        <p class="fb" id="segFb"></p>
+      </section>
+
+      <section data-p="tit" hidden>
+        <h2>Titulação ácido–base</h2>
+        <p class="lede">No erlenmeyer: <span class="formula">25,00 mL</span> de HCl com 3 gotas de fenolftaleína. Na bureta: NaOH <span class="formula">0,100 mol/L</span>.</p>
+        <div class="row" style="margin-top:10px">
+          <div class="seg" role="group" aria-label="Modo">
+            <button id="mTreino" class="on">Treino</button><button id="mDesafio">Desafio</button>
+          </div>
+          <span id="titMode" class="lede" style="font-size:.9rem"></span>
+        </div>
+
+        <div id="titPred">
+          <h3>1 · Prever</h3>
+          <div class="card">
+            <p class="q">O HCl também é 0,100 mol/L. Quanto NaOH será gasto até a solução ficar rosa?</p>
+            <div class="row" id="predOpts"></div>
+            <p class="fb" id="predFb"></p>
+          </div>
+        </div>
+
+        <h3 id="titStep2">2 · Titular</h3>
+        <div class="readouts">
+          <div class="ro"><span>Volume de NaOH</span><b id="roV">0,00 mL</b></div>
+          <div class="ro"><span>pH da solução</span><b id="roPH">—</b></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="add1">+1,0 mL</button>
+          <button class="btn" id="add01">+0,1 mL</button>
+          <button class="btn" id="addGota">1 gota</button>
+          <button class="btn" id="drip">Gotejar</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="reg">Registrar viragem</button>
+          <button class="btn" id="titReset">Recomeçar</button>
+          <label class="chk"><input type="checkbox" id="phOn" checked> pHmetro</label>
+        </div>
+        <p class="fb" id="titFb"></p>
+        <canvas class="chart" id="curve" width="800" height="380" aria-label="Curva de titulação"></canvas>
+
+        <div id="titCalc" hidden>
+          <h3>3 · Calcular</h3>
+          <div class="card">
+            <p class="q">Com o volume registrado, qual é a concentração do HCl?</p>
+            <p class="lede" style="font-size:.9rem">Dica: no ponto de equivalência, n(H⁺) = n(OH⁻).</p>
+            <div class="row"><input type="text" inputmode="decimal" id="caIn" placeholder="0,000"> <span>mol/L</span> <button class="btn primary" id="caBtn">Conferir</button></div>
+            <p class="fb" id="caFb"></p>
+          </div>
+        </div>
+
+        <h3>Explicar</h3>
+        <div class="card" id="titQuiz"></div>
+      </section>
+
+      <section data-p="chama" hidden>
+        <h2>Teste de chama</h2>
+        <p class="lede">A alça de níquel-cromo toca o sal e vai para a chama azul do bico de Bunsen. Antes de aquecer, a equipe escolhe a cor que espera ver.</p>
+        <h3>Prever e observar</h3>
+        <div id="flameList"></div>
+        <h3>Amostra X</h3>
+        <div class="card">
+          <p class="q">Um sal sem rótulo. Aqueçam, observem a chama e identifiquem o metal.</p>
+          <div class="row"><button class="btn primary" id="xHeat">Aquecer amostra X</button></div>
+          <div class="row" id="xOpts" style="margin-top:8px" hidden></div>
+          <p class="fb" id="xFb"></p>
+        </div>
+        <h3>Explicar</h3>
+        <div class="card" id="chamaQuiz"></div>
+      </section>
+
+      <section data-p="rep" hidden>
+        <h2>Indicador de repolho roxo</h2>
+        <p class="lede">Seis materiais de casa e o extrato de repolho roxo. Classifiquem cada um antes de pingar o extrato.</p>
+        <div class="scale" id="cScale"></div>
+        <div class="ticks"><span>pH 1</span><span>4</span><span>7</span><span>10</span><span>14</span></div>
+        <h3>Prever e observar</h3>
+        <div id="cabList"></div>
+        <h3>Tubo misterioso</h3>
+        <div class="card">
+          <p class="q">O último tubo tem um líquido sem rótulo. Pinguem o extrato e estimem o pH pela cor.</p>
+          <div class="row"><button class="btn primary" id="mHeat">Pingar extrato no tubo ?</button></div>
+          <div class="row" id="mOpts" style="margin-top:8px" hidden></div>
+          <p class="fb" id="mFb"></p>
+        </div>
+        <h3>Explicar</h3>
+        <div class="card" id="repQuiz"></div>
+      </section>
+
+      <section data-p="cad" hidden>
+        <h2>Caderno de laboratório</h2>
+        <p class="lede">Tudo o que as equipes previram, mediram e responderam, na ordem em que aconteceu.</p>
+        <h3>Equipes</h3>
+        <div class="row">
+          <input type="text" id="tn0" aria-label="Nome da equipe 1">
+          <input type="text" id="tn1" aria-label="Nome da equipe 2">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="copyLog">Copiar caderno</button>
+          <button class="btn" id="resetScore">Zerar placar</button>
+        </div>
+        <p class="fb" id="cadFb"></p>
+        <h3>Registros</h3>
+        <ul class="log" id="log"></ul>
+      </section>
+    </aside>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=(v,d=2)=>v.toFixed(d).replace('.',',');
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const store={get(k,d){try{const v=localStorage.getItem('bancada_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+             set(k,v){try{localStorage.setItem('bancada_'+k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- Placar e caderno ---------- */
+const S={teams:store.get('teams',[{name:'Equipe A',pts:0},{name:'Equipe B',pts:0}]),active:0,log:[]};
+function renderScore(){
+  const el=$('#score'); el.innerHTML='';
+  S.teams.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='team'+(i===S.active?' on':'');
+    b.setAttribute('aria-pressed',i===S.active);
+    b.innerHTML='<span>'+esc(t.name)+'</span><span class="tp">'+t.pts+'</span>';
+    b.onclick=()=>{S.active=i;renderScore();toast('Vez da '+t.name)};
+    el.appendChild(b);
+  });
+  const s=document.createElement('small'); s.textContent='toque na equipe da vez'; el.appendChild(s);
+}
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
+function award(n,why){
+  const t=S.teams[S.active]; t.pts+=n; store.set('teams',S.teams); renderScore();
+  toast('+'+n+' para '+t.name+' · '+why); note(t.name+' ganhou '+n+' pt: '+why);
+}
+function note(text){S.log.push({t:new Date(),text});renderLog()}
+function renderLog(){
+  const ul=$('#log'); ul.innerHTML='';
+  if(!S.log.length){ul.innerHTML='<li><time>—</time><span>Os registros aparecem aqui assim que a turma começar.</span></li>';return}
+  S.log.slice().reverse().forEach(e=>{
+    const li=document.createElement('li');
+    li.innerHTML='<time>'+e.t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</time><span>'+esc(e.text)+'</span>';
+    ul.appendChild(li);
+  });
+}
+function quiz(el,q){
+  el.innerHTML='<p class="q">'+q.q+'</p><div class="qopts"></div><p class="fb"></p>';
+  const box=el.querySelector('.qopts'),fb=el.querySelector('.fb');let tries=0,done=false;
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');b.className='btn';b.textContent=o;
+    b.onclick=()=>{
+      if(done)return; tries++;
+      if(i===q.a){done=true;b.classList.add('ok');fb.className='fb good';fb.textContent=q.why;
+        if(tries===1)award(2,'explicação ('+q.tag+')'); else note('Explicação ('+q.tag+') acertada na tentativa '+tries);}
+      else{b.classList.add('no');b.disabled=true;fb.className='fb bad';fb.textContent='Ainda não. Discutam e tentem outra alternativa.';}
+    };
+    box.appendChild(b);
+  });
+}
+
+/* ---------- Cena 3D ---------- */
+const R=(function(){
+  if(!window.THREE)return null;
+  try{
+    const host=$('#stage');
+    const renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+    renderer.outputEncoding=THREE.sRGBEncoding;
+    host.prepend(renderer.domElement);
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color(0x182024);
+    scene.fog=new THREE.Fog(0x182024,10,22);
+    const camera=new THREE.PerspectiveCamera(38,1,0.05,60);
+    camera.position.set(0,3.4,8);
+    const target=new THREE.Vector3(0,0.8,0);
+    let controls=null;
+    if(THREE.OrbitControls){
+      controls=new THREE.OrbitControls(camera,renderer.domElement);
+      controls.enableDamping=true;controls.dampingFactor=0.08;
+      controls.maxPolarAngle=Math.PI*0.48;controls.minDistance=0.9;controls.maxDistance=12;
+      controls.target.copy(target);
+    }else{$('#hint').hidden=true}
+    camera.lookAt(target);
+
+    scene.add(new THREE.HemisphereLight(0xf2f6ff,0x22302e,0.8));
+    const sun=new THREE.DirectionalLight(0xffffff,0.7);sun.position.set(3,7,5);scene.add(sun);
+    const fill=new THREE.DirectionalLight(0xbfe6ff,0.25);fill.position.set(-5,3,2);scene.add(fill);
+
+    const std=(c,r=0.6,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+    const glass=()=>new THREE.MeshPhongMaterial({color:0xdcefff,transparent:true,opacity:0.22,shininess:120,specular:0xffffff,side:THREE.DoubleSide,depthWrite:false});
+    const liquid=(c,o)=>new THREE.MeshPhongMaterial({color:c,transparent:true,opacity:o,shininess:60});
+    function add(geo,mat,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);scene.add(m);return m}
+    function label(text,x,y,z,h){
+      const c=document.createElement('canvas');const ctx=c.getContext('2d');
+      ctx.font='600 56px "IBM Plex Sans", sans-serif';
+      const w=Math.ceil(ctx.measureText(text).width)+48;c.width=w;c.height=88;
+      ctx.font='600 56px "IBM Plex Sans", sans-serif';
+      ctx.fillStyle='rgba(10,16,18,0.72)';
+      const r=20;ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(w-r,0);ctx.quadraticCurveTo(w,0,w,r);ctx.lineTo(w,88-r);ctx.quadraticCurveTo(w,88,w-r,88);
+      ctx.lineTo(r,88);ctx.quadraticCurveTo(0,88,0,88-r);ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.fill();
+      ctx.fillStyle='#e8f1ee';ctx.textBaseline='middle';ctx.fillText(text,24,46);
+      const tex=new THREE.CanvasTexture(c);tex.encoding=THREE.sRGBEncoding;
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthWrite:false}));
+      h=h||0.11;sp.scale.set(h*w/88,h,1);sp.position.set(x,y,z);scene.add(sp);return sp;
+    }
+
+    // bancada, armário e parede de azulejos
+    add(new THREE.BoxGeometry(11,0.3,3.4),std(0x22302f,0.5),0,-0.15,0);
+    add(new THREE.BoxGeometry(10.8,1.6,3.2),std(0xd6dcd9,0.9),0,-1.1,0.02);
+    add(new THREE.PlaneGeometry(16,8),std(0xc9d3d0,0.95),0,2.6,-1.72);
+    const grid=new THREE.GridHelper(16,40,0xaab6b3,0xaab6b3);grid.rotation.x=Math.PI/2;grid.position.set(0,2.6,-1.71);scene.add(grid);
+    // prateleira com frascos
+    add(new THREE.BoxGeometry(9,0.06,0.45),std(0x6b4a2f,0.7),0,2.3,-1.45);
+    [0x8a5a20,0x2a5a8a,0xdfe8e4,0x3a7a3a,0x7a2a2a,0xdfe8e4,0x5a3a7a].forEach((c,i)=>{
+      const x=-3.9+i*1.3;
+      add(new THREE.CylinderGeometry(0.13,0.13,0.42,20),new THREE.MeshPhongMaterial({color:c,transparent:true,opacity:0.8,shininess:90}),x,2.54,-1.45);
+      add(new THREE.CylinderGeometry(0.06,0.06,0.08,12),std(0x222222),x,2.79,-1.45);
+    });
+
+    /* Estação 1: titulação */
+    const TX=-3,TZ=0.15;
+    add(new THREE.BoxGeometry(0.9,0.05,0.6),std(0x2d2f33,0.4,0.3),TX-0.2,0.025,TZ);
+    add(new THREE.CylinderGeometry(0.022,0.022,3.2,12),std(0xb8bec4,0.3,0.8),TX-0.55,1.6,TZ);
+    add(new THREE.BoxGeometry(0.52,0.05,0.05),std(0x2d2f33,0.4,0.4),TX-0.29,2.3,TZ);
+    add(new THREE.TorusGeometry(0.07,0.015,8,20),std(0x2d2f33,0.4,0.4),TX,2.3,TZ).rotation.x=Math.PI/2;
+    const fp=[[0,0],[0.33,0],[0.35,0.03],[0.31,0.26],[0.12,0.53],[0.09,0.58],[0.09,0.74],[0.105,0.76]].map(p=>new THREE.Vector2(p[0],p[1]));
+    add(new THREE.LatheGeometry(fp,40),glass(),TX,0.05,TZ).renderOrder=2;
+    const lp=[[0,0.012],[0.325,0.012],[0.338,0.03],[0.318,0.16],[0,0.16]].map(p=>new THREE.Vector2(p[0],p[1]));
+    const flaskLiq=add(new THREE.LatheGeometry(lp,40),liquid(0xeef4f6,0.35),TX,0.05,TZ);
+    add(new THREE.CylinderGeometry(0.055,0.055,2.0,24,1,true),glass(),TX,1.95,TZ).renderOrder=2;
+    add(new THREE.CylinderGeometry(0.055,0.012,0.16,16,1,true),glass(),TX,0.87,TZ).renderOrder=2;
+    add(new THREE.BoxGeometry(0.2,0.035,0.035),std(0xf2f2f2,0.4),TX,0.99,TZ);
+    const burGeo=new THREE.CylinderGeometry(0.047,0.047,1,20);burGeo.translate(0,0.5,0);
+    const burLiq=add(burGeo,liquid(0xd2e8ff,0.5),TX,0.95,TZ);
+    for(let v=0;v<=50;v+=5){
+      add(new THREE.BoxGeometry(v%10?0.035:0.06,0.005,0.004),std(0xffffff,0.5),TX+0.02,2.85-v/50*1.9,TZ+0.057);
+      if(v%10===0)label(String(v),TX+0.15,2.85-v/50*1.9,TZ+0.06,0.07);
+    }
+    label('NaOH 0,100 mol/L',TX+0.55,2.95,TZ,0.1);
+    label('HCl + fenolftaleína',TX+0.75,0.45,TZ+0.35,0.1);
+    const drops=[];const dropGeo=new THREE.SphereGeometry(0.018,10,8);const dropMat=liquid(0xd2e8ff,0.8);
+
+    /* Estação 2: teste de chama */
+    const FX=0,FZ=0.05;
+    add(new THREE.CylinderGeometry(0.2,0.24,0.06,28),std(0x30343a,0.4,0.6),FX,0.03,FZ);
+    add(new THREE.CylinderGeometry(0.045,0.045,0.6,20),std(0x9aa3ab,0.3,0.85),FX,0.36,FZ);
+    add(new THREE.CylinderGeometry(0.055,0.055,0.08,20),std(0x7a838c,0.3,0.85),FX,0.14,FZ);
+    const add2=(g,c,o,y)=>{const m=add(g,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}),FX,y,FZ);m.renderOrder=3;return m};
+    const flameOut=add2(new THREE.ConeGeometry(0.085,0.55,24,1,true),0x3f6dff,0.38,0.66+0.275);
+    const flameIn=add2(new THREE.ConeGeometry(0.05,0.22,20,1,true),0x8fb8ff,0.6,0.66+0.11);
+    const flameCol=add2(new THREE.ConeGeometry(0.13,0.8,24,1,true),0xffffff,0,0.66+0.42);
+    const flameLight=new THREE.PointLight(0x6688ff,0.5,3.5);flameLight.position.set(FX,1.0,FZ+0.1);scene.add(flameLight);
+    const loop=new THREE.Group();
+    const h1=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.42,10),std(0x8a5a2b,0.7));h1.rotation.z=Math.PI/2;h1.position.x=0.36;loop.add(h1);
+    const w1=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,0.16,6),std(0xc0c6cc,0.3,0.9));w1.rotation.z=Math.PI/2;w1.position.x=0.08;loop.add(w1);
+    const t1=new THREE.Mesh(new THREE.TorusGeometry(0.022,0.004,6,16),std(0xc0c6cc,0.3,0.9));t1.rotation.y=Math.PI/2;loop.add(t1);
+    const loopRest=new THREE.Vector3(1.55,0.06,0.45);loop.position.copy(loopRest);scene.add(loop);
+    const dishes=[];
+    function makeDish(i,col,txt){
+      const x=-1.11+i*0.37,z=0.8;
+      add(new THREE.CylinderGeometry(0.14,0.1,0.03,24),glass(),x,0.015,z);
+      const mound=add(new THREE.SphereGeometry(0.07,16,10),std(col,0.9),x,0.03,z);mound.scale.y=0.35;
+      label(txt,x,0.17,z+0.05,0.075);
+      dishes.push(new THREE.Vector3(x,0.06,z));
+    }
+    label('bico de Bunsen',FX-0.55,0.5,FZ,0.09);
+
+    /* Estação 3: repolho roxo */
+    const CX=3;
+    add(new THREE.BoxGeometry(2.1,0.05,0.38),std(0xe9ece6,0.8),CX,0.5,0);
+    add(new THREE.BoxGeometry(2.1,0.04,0.38),std(0xe9ece6,0.8),CX,0.02,0);
+    [-1,1].forEach(s=>add(new THREE.BoxGeometry(0.05,0.5,0.38),std(0xe9ece6,0.8),CX+s*1.03,0.27,0));
+    const tubes=[];
+    for(let i=0;i<7;i++){
+      const x=CX+(i-3)*0.28;
+      add(new THREE.CylinderGeometry(0.07,0.07,0.78,20,1,true),glass(),x,0.47,0).renderOrder=2;
+      const mat=liquid(0xeef3f4,0.35);
+      const lq=add(new THREE.CylinderGeometry(0.061,0.061,0.3,20),mat,x,0.23,0);
+      const bot=add(new THREE.SphereGeometry(0.061,16,8,0,Math.PI*2,Math.PI/2,Math.PI/2),mat,x,0.08,0);
+      tubes.push({mat,x,lq,bot});
+    }
+    const bk=[[0,0],[0.17,0],[0.18,0.02],[0.18,0.32],[0.2,0.34]].map(p=>new THREE.Vector2(p[0],p[1]));
+    add(new THREE.LatheGeometry(bk,32),glass(),CX+1.5,0,0.65).renderOrder=2;
+    add(new THREE.CylinderGeometry(0.165,0.165,0.2,28),liquid(0x5b3a8e,0.85),CX+1.5,0.11,0.65);
+    label('extrato de repolho roxo',CX+1.5,0.5,0.65,0.09);
+    const pip=new THREE.Group();
+    const pg=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.008,0.32,10),glass());pg.position.y=0.16;pip.add(pg);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.035,12,10),std(0xd9572b,0.6));bulb.scale.y=1.4;bulb.position.y=0.35;pip.add(bulb);
+    const pipRest=new THREE.Vector3(CX+1.5,0.34,0.65);pip.position.copy(pipRest);scene.add(pip);
+    const purpleDrop=liquid(0x5b3a8e,0.9);
+
+    /* tweens e animação */
+    const tweens=[];
+    function tween(dur,fn){return new Promise(res=>tweens.push({t:0,dur,fn,res}))}
+    const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    function moveTo(obj,to,dur){const from=obj.position.clone();return tween(dur,k=>obj.position.lerpVectors(from,to,ease(k)))}
+    const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    const views={
+      seg:{p:[0,3.4,8],t:[0,0.8,0]},cad:{p:[0,3.4,8],t:[0,0.8,0]},
+      tit:{p:[-1.7,1.9,3.5],t:[-3,1.35,0]},
+      chama:{p:[0.7,1.25,2.75],t:[0,0.55,0.2]},
+      rep:{p:[3.2,1.25,2.6],t:[3,0.4,0.1]}
+    };
+    function go(name){
+      const v=views[name]||views.seg;const p0=camera.position.clone(),t0=(controls?controls.target:target).clone();
+      const p1=new THREE.Vector3(...v.p),t1=new THREE.Vector3(...v.t);
+      return tween(900,k=>{const e=ease(k);camera.position.lerpVectors(p0,p1,e);
+        const tt=new THREE.Vector3().lerpVectors(t0,t1,e);if(controls)controls.target.copy(tt);else{target.copy(tt);camera.lookAt(tt)}});
+    }
+    function size(){const w=host.clientWidth||600,h=host.clientHeight||400;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
+    size();
+    if(window.ResizeObserver)new ResizeObserver(size).observe(host);else window.addEventListener('resize',size);
+    let last=performance.now(),flameBoost=0,flameTarget=0;
+    function frame(now){
+      const dt=Math.min(0.05,(now-last)/1000);last=now;
+      for(let i=tweens.length-1;i>=0;i--){const tw=tweens[i];tw.t+=dt*1000;const k=Math.min(1,tw.t/tw.dur);tw.fn(k);if(k>=1){tweens.splice(i,1);tw.res()}}
+      for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.v+=9.8*dt;d.m.position.y-=d.v*dt;if(d.m.position.y<d.stop){scene.remove(d.m);drops.splice(i,1)}}
+      const t=now/1000,fl=1+0.06*Math.sin(t*13)+0.04*Math.sin(t*23.7);
+      flameOut.scale.set(1,fl,1);flameCol.scale.set(1+0.05*Math.sin(t*17),fl*1.05,1+0.05*Math.cos(t*15));
+      flameBoost+=(flameTarget-flameBoost)*Math.min(1,dt*5);
+      flameCol.material.opacity=0.75*flameBoost;flameOut.material.opacity=0.38*(1-0.7*flameBoost);
+      flameLight.intensity=0.5+1.4*flameBoost;
+      if(controls)controls.update();
+      renderer.render(scene,camera);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    return {
+      go,
+      setTitration(vb,col,op){
+        burLiq.scale.y=Math.max(0.001,1.9*(1-vb/50))+0.0;
+        flaskLiq.scale.y=0.8+Math.min(vb,50)/50*0.6;
+        flaskLiq.material.color.set(col);flaskLiq.material.opacity=op;
+      },
+      drop(){const m=new THREE.Mesh(dropGeo,dropMat);m.position.set(TX,0.79,TZ);scene.add(m);drops.push({m,v:0,stop:0.05+0.16*flaskLiq.scale.y})},
+      initDishes(list){list.forEach((d,i)=>makeDish(i,d.col,d.txt))},
+      async heat(i,color){
+        const d=dishes[i];
+        await moveTo(loop,new THREE.Vector3(d.x,0.3,d.z),500);
+        await moveTo(loop,new THREE.Vector3(d.x,0.06,d.z),300);
+        await moveTo(loop,new THREE.Vector3(d.x,0.3,d.z),300);
+        await moveTo(loop,new THREE.Vector3(FX+0.02,0.92,FZ),700);
+        flameCol.material.color.set(color);flameLight.color.set(color);flameTarget=1;
+        await wait(2600);
+        flameTarget=0;await wait(400);flameLight.color.set(0x6688ff);
+        await moveTo(loop,loopRest,700);
+      },
+      tubeColor(i,col,op){tubes[i].mat.color.set(col);tubes[i].mat.opacity=op},
+      async pour(i,col){
+        const tb=tubes[i];
+        await moveTo(pip,new THREE.Vector3(pipRest.x,0.6,pipRest.z),300);
+        await moveTo(pip,new THREE.Vector3(tb.x,0.95,0),600);
+        for(let k=0;k<3;k++){const m=new THREE.Mesh(dropGeo,purpleDrop);m.position.set(tb.x,0.94,0);scene.add(m);drops.push({m,v:0,stop:0.38});await wait(220)}
+        const c0=tb.mat.color.clone(),c1=new THREE.Color(col),o0=tb.mat.opacity;
+        await tween(900,k=>{tb.mat.color.copy(c0).lerp(c1,k);tb.mat.opacity=o0+(0.85-o0)*k});
+        await moveTo(pip,new THREE.Vector3(pipRest.x,0.6,pipRest.z),600);
+        await moveTo(pip,pipRest,300);
+      },
+      label
+    };
+  }catch(err){console.warn('3D indisponível',err);return null}
+})();
+if(!R){$('#fallback').hidden=false;$('#hint').hidden=true}
+const fbSwatch=c=>{if(!R)$('#fbSwatch').style.background=c};
+
+/* ---------- Navegação ---------- */
+let station='seg';
+function show(st){
+  station=st;
+  document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('on',b.dataset.st===st)});
+  document.querySelectorAll('[data-p]').forEach(s=>s.hidden=s.dataset.p!==st);
+  $('#panel').scrollTop=0;
+  if(R)R.go(st);
+  updateHud();
+  if(st==='tit')drawCurve();
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.st));
+function updateHud(){
+  const h=$('#hud');
+  if(station==='tit'){h.innerHTML='<small>NaOH adicionado</small>'+fmt(T.vb)+' mL'+(T.phOn?'<small style="margin-top:6px">pH</small>'+fmt(pH(T.ca,T.vb),2):'')}
+  else if(station==='chama'){h.innerHTML=F.last?'<small>na chama</small>'+esc(F.last):'<small>bico de Bunsen</small>chama azul'}
+  else if(station==='rep'){h.innerHTML='<small>indicador natural</small>antocianinas'}
+  else if(station==='seg'){h.innerHTML='<small>estação</small>segurança'}
+  else h.innerHTML='';
+}
+
+/* ---------- Segurança ---------- */
+const SEG=[
+  {t:'Usar óculos de proteção durante todo o experimento',ok:true,why:'Um respingo de ácido ou base nos olhos causa lesão em segundos.'},
+  {t:'Pipetar com a boca para medir volumes pequenos',ok:false,why:'Proibido. Usa-se pera ou pipetador: pela boca há risco de ingerir a solução.'},
+  {t:'Prender o cabelo comprido antes de acender o bico de Bunsen',ok:true,why:'Cabelo solto encosta na chama sem que a pessoa perceba.'},
+  {t:'Despejar água sobre ácido concentrado para diluí-lo',ok:false,why:'O certo é o ácido na água, aos poucos. Água sobre ácido aquece de uma vez e espirra.'},
+  {t:'Cheirar um reagente aproximando o nariz do frasco',ok:false,why:'Abana-se o vapor em direção ao nariz com a mão, de longe.'},
+  {t:'Localizar o chuveiro de emergência e o lava-olhos antes de começar',ok:true,why:'Em um acidente não há tempo para procurar.'},
+  {t:'Usar sandália aberta no laboratório',ok:false,why:'Sapato fechado protege de respingos e de cacos de vidro.'}
+];
+let segDone=0;
+SEG.forEach((it,i)=>{
+  const d=document.createElement('div');d.className='item';
+  d.innerHTML='<div class="name">'+it.t+'</div><div class="row"><button class="btn" data-v="1">Faz parte</button><button class="btn" data-v="0">Proibido</button></div><p class="fb" style="margin:0"></p>';
+  const fb=d.querySelector('.fb');
+  d.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const right=(b.dataset.v==='1')===it.ok;
+    d.querySelectorAll('button').forEach(x=>x.disabled=true);
+    b.classList.add(right?'ok':'no');b.disabled=false;
+    fb.className='fb '+(right?'good':'bad');fb.textContent=(right?'Certo. ':'Não. ')+it.why;
+    if(right)award(1,'segurança'); else note('Segurança: errou "'+it.t+'"');
+    segDone++;if(segDone===SEG.length){$('#segFb').className='fb good';$('#segFb').textContent='Checklist completo. A bancada está liberada: escolham uma estação acima.'}
+  });
+  $('#segList').appendChild(d);
+});
+
+/* ---------- Titulação ---------- */
+const VA=25,CB=0.1;
+function pH(ca,vb){
+  const nA=ca*VA,nB=CB*vb,V=VA+vb,d=(nA-nB)/V;
+  const x=Math.abs(d)/2+Math.sqrt(d*d/4+1e-14);
+  return d>=0?-Math.log10(x):14+Math.log10(x);
+}
+function phenol(p){
+  const a=clamp((p-8.2)/1.8,0,1);
+  const c0=[238,244,246],c1=[255,92,170],c2=[205,0,110];
+  const mix=a<0.6?c0.map((v,i)=>v+(c1[i]-v)*(a/0.6)):c1.map((v,i)=>v+(c2[i]-v)*((a-0.6)/0.4));
+  return {css:'rgb('+mix.map(Math.round).join(',')+')',op:0.35+0.45*a,a};
+}
+const T={mode:'treino',ca:0.1,vb:0,pts:[[0,0]],pred:null,end:null,drip:null,phOn:true,solved:false};
+T.pts=[[0,pH(0.1,0)]];
+function titSet(mode){
+  T.mode=mode;$('#mTreino').classList.toggle('on',mode==='treino');$('#mDesafio').classList.toggle('on',mode==='desafio');
+  T.ca=mode==='treino'?0.1:Math.round((0.08+Math.random()*0.06)*1000)/1000;
+  T.phOn=mode==='treino';$('#phOn').checked=T.phOn;
+  $('#titPred').hidden=mode!=='treino';
+  $('#titStep2').textContent=mode==='treino'?'2 · Titular':'1 · Titular';
+  $('#titMode').textContent=mode==='treino'?'HCl 0,100 mol/L':'HCl de concentração desconhecida';
+  titReset(false);
+  note(mode==='treino'?'Titulação: modo treino iniciado':'Titulação: desafio iniciado com HCl desconhecido');
+}
+function titReset(log=true){
+  stopDrip();T.vb=0;T.end=null;T.solved=false;T.pts=[[0,pH(T.ca,0)]];
+  if(T.mode==='treino'){T.pred=null;renderPred()}
+  $('#titCalc').hidden=true;$('#caIn').value='';$('#caFb').textContent='';
+  $('#titFb').textContent='';titUpdate();if(log)note('Titulação recomeçada');
+}
+function controlsLocked(){return (T.mode==='treino'&&T.pred===null)||T.end!==null}
+function titUpdate(){
+  const p=pH(T.ca,T.vb),c=phenol(p);
+  $('#roV').textContent=fmt(T.vb)+' mL';
+  $('#roPH').textContent=T.phOn?fmt(p,2):'—';
+  const lock=controlsLocked();
+  ['#add1','#add01','#addGota','#drip','#reg'].forEach(s=>$(s).disabled=lock||T.vb>=50);
+  if(R)R.setTitration(T.vb,c.css,c.op);
+  if(station==='tit'){fbSwatch(c.css);updateHud()}
+  drawCurve();
+}
+function addV(v,silentDrop){
+  if(controlsLocked())return;
+  const before=pH(T.ca,T.vb);
+  T.vb=Math.min(50,Math.round((T.vb+v)*100)/100);
+  T.pts.push([T.vb,pH(T.ca,T.vb)]);
+  if(R&&!silentDrop){const n=Math.min(6,Math.max(1,Math.round(v/0.1)));for(let i=0;i<n;i++)setTimeout(()=>R.drop(),i*90)}
+  const after=pH(T.ca,T.vb);
+  const fb=$('#titFb');
+  if(before<8.2&&after>=8.2){fb.className='fb warn';fb.textContent='Apareceu cor rosa e ela não sumiu ao agitar. É hora de registrar?'}
+  else if(after>10.5&&T.vb>0){fb.className='fb bad';fb.textContent='Rosa muito intenso: o ponto de viragem já passou.'}
+  else if(after<8.2){fb.textContent=''}
+  if(T.vb>=50){stopDrip();fb.className='fb bad';fb.textContent='A bureta esvaziou.'}
+  titUpdate();
+}
+function stopDrip(){if(T.drip){clearInterval(T.drip);T.drip=null}$('#drip').textContent='Gotejar';$('#drip').classList.remove('sel')}
+$('#add1').onclick=()=>addV(1);$('#add01').onclick=()=>addV(0.1);$('#addGota').onclick=()=>addV(0.05);
+$('#drip').onclick=()=>{
+  if(T.drip){stopDrip();return}
+  $('#drip').textContent='Fechar torneira';$('#drip').classList.add('sel');
+  let k=0;T.drip=setInterval(()=>{addV(0.05,true);if(R&&k++%2===0)R.drop()},110);
+};
+$('#titReset').onclick=()=>titReset();
+$('#mTreino').onclick=()=>titSet('treino');$('#mDesafio').onclick=()=>titSet('desafio');
+$('#phOn').onchange=e=>{T.phOn=e.target.checked;titUpdate()};
+function renderPred(){
+  const box=$('#predOpts');box.innerHTML='';$('#predFb').textContent='';
+  [12.5,25,50].forEach(v=>{
+    const b=document.createElement('button');b.className='btn big';b.textContent='≈ '+fmt(v,1).replace(',0','')+' mL';
+    b.onclick=()=>{if(T.pred!==null)return;T.pred=v;b.classList.add('sel');box.querySelectorAll('button').forEach(x=>x.disabled=x!==b);
+      $('#predFb').className='fb';$('#predFb').textContent='Previsão registrada. Agora abram a torneira com cuidado.';
+      note(S.teams[S.active].name+' previu '+fmt(v,1)+' mL de NaOH');titUpdate()};
+    box.appendChild(b);
+  });
+}
+$('#reg').onclick=()=>{
+  const p=pH(T.ca,T.vb),fb=$('#titFb');
+  if(p<8.2){fb.className='fb bad';fb.textContent='A solução ainda está incolor. A viragem é a primeira cor rosa que persiste ao agitar.';return}
+  stopDrip();T.end=T.vb;const veq=T.ca*VA/CB,err=Math.abs(T.vb-veq);
+  note('Viragem registrada em '+fmt(T.vb)+' mL'+(T.phOn?'':' (pH '+fmt(p,2)+')'));
+  if(T.mode==='treino'){
+    let msg='Viragem em '+fmt(T.vb)+' mL. Equivalência teórica: 25,00 mL. ';
+    if(err<=0.15){award(2,'viragem precisa');msg+='Precisão de bancada!'}
+    else if(err<=1){award(1,'viragem próxima');msg+='Passou um pouco: perto do fim, use gotas.'}
+    else msg+='Passou bastante. Recomecem e reduzam o volume perto de 25 mL.';
+    if(T.pred===25){award(1,'previsão correta');msg+=' A previsão de 25 mL estava certa: mesma concentração, proporção 1:1.'}
+    else msg+=' A previsão foi '+fmt(T.pred,1)+' mL. Como as concentrações são iguais e a reação é 1:1, os volumes também são iguais.';
+    fb.className='fb good';fb.textContent=msg;
+  }else{
+    T.phOn=true;$('#phOn').checked=true;
+    fb.className='fb good';fb.textContent='Viragem registrada em '+fmt(T.vb)+' mL. A curva foi revelada. Agora calculem a concentração.';
+    $('#titCalc').hidden=false;
+  }
+  titUpdate();
+};
+$('#caBtn').onclick=()=>{
+  if(T.solved)return;
+  const v=parseFloat(String($('#caIn').value).replace(',','.'));const fb=$('#caFb');
+  if(!isFinite(v)||v<=0){fb.className='fb bad';fb.textContent='Digite um número, por exemplo 0,112.';return}
+  const fromV=CB*T.end/VA;
+  note('Concentração calculada: '+fmt(v,3)+' mol/L');
+  if(Math.abs(v-T.ca)/T.ca<=0.03){T.solved=true;award(3,'concentração do desafio');fb.className='fb good';
+    fb.textContent='Correto! O HCl tinha '+fmt(T.ca,3)+' mol/L. Ca = Cb·Vb / Va = 0,100 × '+fmt(T.end)+' / 25,00.'}
+  else if(Math.abs(v-fromV)/fromV<=0.02){fb.className='fb warn';fb.textContent='A conta está certa para o volume registrado, mas a viragem passou do ponto. O valor real era '+fmt(T.ca,3)+' mol/L.'}
+  else{fb.className='fb bad';fb.textContent='Ainda não. Usem Ca·Va = Cb·Vb, com Va = 25,00 mL e Cb = 0,100 mol/L.'}
+};
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function drawCurve(){
+  const cv=$('#curve');if(!cv||cv.offsetParent===null)return;
+  const r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  const W=r.width,H=r.height,L=34,B=26,Tp=12,Rt=12;
+  const xmax=T.mode==='treino'?40:50;
+  const X=v=>L+(W-L-Rt)*v/xmax,Y=p=>Tp+(H-Tp-B)*(1-p/14);
+  g.clearRect(0,0,W,H);
+  const ink=css('--ink'),mut=css('--muted'),line=css('--line'),acc=css('--accent');
+  g.fillStyle='rgba(255,80,160,0.13)';g.fillRect(L,Y(10),W-L-Rt,Y(8.2)-Y(10));
+  g.font='500 11px '+css('--mono');g.fillStyle=mut;g.strokeStyle=line;g.lineWidth=1;
+  for(let p=0;p<=14;p+=2){g.beginPath();g.moveTo(L,Y(p));g.lineTo(W-Rt,Y(p));g.stroke();g.fillText(String(p),8,Y(p)+4)}
+  for(let v=0;v<=xmax;v+=10){g.fillText(String(v),X(v)-6,H-8)}
+  g.fillText('mL de NaOH',W-Rt-74,Y(1)-4);
+  g.fillStyle='rgba(220,40,130,0.85)';g.fillText('faixa da fenolftaleína',L+6,Y(10)-4);
+  if(!T.phOn){g.fillStyle=mut;g.font='500 13px '+css('--body');g.fillText('Curva oculta no desafio até a viragem.',L+12,Y(4));return}
+  g.strokeStyle=acc;g.lineWidth=2.5;g.beginPath();
+  T.pts.forEach(([v,p],i)=>{i?g.lineTo(X(v),Y(p)):g.moveTo(X(v),Y(p))});g.stroke();
+  const [lv,lp]=T.pts[T.pts.length-1];g.fillStyle=acc;g.beginPath();g.arc(X(lv),Y(lp),4.5,0,7);g.fill();
+  if(T.end!==null){g.strokeStyle=ink;g.setLineDash([4,4]);g.beginPath();g.moveTo(X(T.end),Tp);g.lineTo(X(T.end),H-B);g.stroke();g.setLineDash([])}
+}
+window.addEventListener('resize',drawCurve);
+quiz($('#titQuiz'),{tag:'titulação',a:1,
+  q:'Por que a solução fica rosa de repente, com uma única gota perto do ponto de equivalência?',
+  opts:['A fenolftaleína reage com todo o NaOH de uma vez quando ele chega a 25 mL',
+        'Perto da equivalência quase não sobra H⁺; uma gota de base faz o pH saltar várias unidades e cruzar a faixa da fenolftaleína (8,2 a 10)',
+        'O ácido evapora com o calor da reação e a água pura fica rosa'],
+  why:'Observem a curva: o trecho quase vertical é o salto de pH. A fenolftaleína muda de cor dentro dele, por isso funciona como sinal do ponto final.'});
+
+/* ---------- Teste de chama ---------- */
+const FAM={vermelho:{n:'Vermelho',c:'#e8233a'},amarelo:{n:'Amarelo',c:'#ffb21a'},lilas:{n:'Lilás',c:'#b58cff'},laranja:{n:'Laranja',c:'#ff6a28'},verde:{n:'Verde',c:'#25d6a0'}};
+const SALTS=[
+  {id:'Li',f:'LiCl',n:'cloreto de lítio',c:'#e0144f',fam:'vermelho',nm:'vermelho-carmim',col:0xf2f2f2},
+  {id:'Na',f:'NaCl',n:'cloreto de sódio',c:'#ffb21a',fam:'amarelo',nm:'amarelo-alaranjado intenso (589 nm)',col:0xf7f7f7},
+  {id:'K',f:'KCl',n:'cloreto de potássio',c:'#b58cff',fam:'lilas',nm:'lilás, fraco',col:0xf0f0f0},
+  {id:'Ca',f:'CaCl₂',n:'cloreto de cálcio',c:'#ff6a28',fam:'laranja',nm:'laranja-tijolo',col:0xf4f4f0},
+  {id:'Sr',f:'SrCl₂',n:'cloreto de estrôncio',c:'#ff1f1f',fam:'vermelho',nm:'vermelho intenso',col:0xf2f2f2},
+  {id:'Cu',f:'CuCl₂',n:'cloreto de cobre(II)',c:'#25e0a6',fam:'verde',nm:'verde-azulado',col:0x3fa7a0}
+];
+const F={pred:{},seen:{},busy:false,last:'',x:null,xSeen:false,xDone:false};
+if(R)R.initDishes(SALTS.map(s=>({col:s.col,txt:s.f})).concat([{col:0xeeeeee,txt:'X'}]));
+function heat(i,color,name){
+  if(F.busy)return Promise.resolve(false);F.busy=true;F.last=name;
+  if(station==='chama')updateHud();
+  document.querySelectorAll('[data-heat]').forEach(b=>b.disabled=true);
+  const done=()=>{F.busy=false;F.last='';updateHud();document.querySelectorAll('[data-heat]').forEach(b=>b.disabled=false);if(!R)fbSwatch('#3f6dff')};
+  if(R)return R.heat(i,color).then(()=>{done();return true});
+  fbSwatch(color);return new Promise(r=>setTimeout(()=>{done();r(true)},2600));
+}
+SALTS.forEach((s,i)=>{
+  const d=document.createElement('div');d.className='item';
+  d.innerHTML='<div class="name">'+s.n+'<em>'+s.f+'</em></div><div class="row dots"></div><div class="row"><button class="btn" data-heat>Levar à chama</button><span class="res"></span></div><p class="fb" style="margin:0"></p>';
+  const dots=d.querySelector('.dots'),fb=d.querySelector('.fb'),res=d.querySelector('.res'),hb=d.querySelector('[data-heat]');
+  Object.entries(FAM).forEach(([k,f])=>{
+    const b=document.createElement('button');b.className='dot';b.style.background=f.c;b.title=f.n;b.setAttribute('aria-label','Prever '+f.n);
+    b.onclick=()=>{if(F.seen[s.id])return;F.pred[s.id]=k;dots.querySelectorAll('.dot').forEach(x=>x.classList.toggle('sel',x===b));fb.className='fb';fb.textContent='Previsão: '+f.n+'.'};
+    dots.appendChild(b);
+  });
+  hb.onclick=()=>{
+    if(!F.seen[s.id]&&!F.pred[s.id]){fb.className='fb warn';fb.textContent='Escolham uma cor antes de aquecer.';return}
+    heat(i,s.c,s.f).then(ok=>{
+      if(!ok)return;
+      res.innerHTML='<span class="chip"><i style="background:'+s.c+'"></i>'+s.nm+'</span>';
+      if(!F.seen[s.id]){
+        F.seen[s.id]=true;const right=F.pred[s.id]===s.fam;
+        note(s.f+': previsto '+FAM[F.pred[s.id]].n.toLowerCase()+', observado '+s.nm);
+        if(right){award(1,'chama de '+s.f);fb.className='fb good';fb.textContent='Previsão confirmada.'}
+        else{fb.className='fb bad';fb.textContent='Previsão diferente do observado.'+(s.id==='K'?' A cor do potássio é fraca e some se houver sódio na amostra; por isso se usa vidro de cobalto.':'')}
+      }
+    });
+  };
+  $('#flameList').appendChild(d);
+});
+F.x=SALTS[[1,2,3,5][Math.floor(Math.random()*4)]];
+$('#xHeat').setAttribute('data-heat','');
+$('#xHeat').onclick=()=>{
+  heat(6,F.x.c,'amostra X').then(ok=>{
+    if(!ok||F.xSeen)return;F.xSeen=true;note('Amostra X aquecida');
+    const box=$('#xOpts');box.hidden=false;
+    SALTS.forEach(s=>{const b=document.createElement('button');b.className='btn';b.textContent=s.id+' · '+s.n.replace('cloreto de ','');
+      b.onclick=()=>{if(F.xDone)return;
+        if(s===F.x){F.xDone=true;b.classList.add('ok');award(2,'amostra X');$('#xFb').className='fb good';$('#xFb').textContent='Isso: a amostra X era '+F.x.n+' ('+F.x.f+').'}
+        else{b.classList.add('no');b.disabled=true;$('#xFb').className='fb bad';$('#xFb').textContent='Não é '+s.f+'. Aqueçam de novo e comparem com a lista.';note('Amostra X: palpite '+s.f+' incorreto')}};
+      box.appendChild(b)});
+  });
+};
+quiz($('#chamaQuiz'),{tag:'chama',a:2,
+  q:'Todos os sais testados são cloretos. De onde vem a cor diferente de cada chama?',
+  opts:['Do cloro, que queima com uma cor diferente em cada sal',
+        'Da temperatura: alguns sais deixam a chama mais quente e por isso mudam a cor',
+        'Do metal: o calor excita os elétrons, que ao voltar a níveis de menor energia emitem luz com comprimentos de onda próprios de cada elemento'],
+  why:'Se o ânion é o mesmo e a cor muda, a cor vem do cátion. Cada elemento tem níveis de energia próprios, e a luz emitida funciona como uma impressão digital. É o princípio dos fogos de artifício e da espectroscopia.'});
+
+/* ---------- Repolho roxo ---------- */
+const STOPS=[[1,[200,16,46]],[3,[214,58,122]],[5,[160,64,156]],[7,[106,75,176]],[8,[63,98,200]],[9.5,[42,143,176]],[11,[47,163,106]],[12.5,[124,191,42]],[14,[217,194,26]]];
+function cab(p){
+  p=clamp(p,1,14);for(let i=1;i<STOPS.length;i++){if(p<=STOPS[i][0]){const [a,ca]=STOPS[i-1],[b,cb]=STOPS[i],k=(p-a)/(b-a);
+    return 'rgb('+ca.map((v,j)=>Math.round(v+(cb[j]-v)*k)).join(',')+')'}}return 'rgb(217,194,26)';
+}
+$('#cScale').style.background='linear-gradient(90deg,'+[1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(p=>cab(p)+' '+((p-1)/13*100).toFixed(1)+'%').join(',')+')';
+const CAB=[
+  {n:'Suco de limão',p:2.2,i:0xf4f0c4,o:0.55},{n:'Vinagre',p:2.9,i:0xf2f1e6,o:0.35},{n:'Água da torneira',p:7.0,i:0xeef4f6,o:0.3},
+  {n:'Bicarbonato de sódio',p:8.3,i:0xf4f6f6,o:0.6},{n:'Sabão em pó',p:10.5,i:0xf0f3f8,o:0.7},{n:'Soda cáustica diluída',p:13,i:0xeef4f6,o:0.3}
+];
+const cls=p=>p<6.5?'acido':p>7.5?'basico':'neutro';
+const CLN={acido:'Ácido',neutro:'Neutro',basico:'Básico'};
+const C={pred:{},seen:{},busy:false};
+CAB.forEach((s,i)=>{if(R)R.tubeColor(i,s.i,s.o)});
+if(R){['limão','vinagre','água','bicarb.','sabão','soda','?'].forEach((t,i)=>R.label(t,3+(i-3)*0.28,0.6,0.15,0.06))}
+function pour(i,col){
+  if(C.busy)return Promise.resolve(false);C.busy=true;
+  document.querySelectorAll('[data-pour]').forEach(b=>b.disabled=true);
+  const done=()=>{C.busy=false;document.querySelectorAll('[data-pour]').forEach(b=>b.disabled=false)};
+  if(R)return R.pour(i,col).then(()=>{done();return true});
+  fbSwatch(col);done();return Promise.resolve(true);
+}
+CAB.forEach((s,i)=>{
+  const d=document.createElement('div');d.className='item';
+  d.innerHTML='<div class="name">'+s.n+'</div><div class="row cl"></div><div class="row"><button class="btn" data-pour>Pingar extrato</button><span class="res"></span></div><p class="fb" style="margin:0"></p>';
+  const row=d.querySelector('.cl'),fb=d.querySelector('.fb'),res=d.querySelector('.res'),pb=d.querySelector('[data-pour]');
+  Object.keys(CLN).forEach(k=>{const b=document.createElement('button');b.className='btn';b.textContent=CLN[k];
+    b.onclick=()=>{if(C.seen[i])return;C.pred[i]=k;row.querySelectorAll('.btn').forEach(x=>x.classList.toggle('sel',x===b));fb.textContent=''};
+    row.appendChild(b)});
+  pb.onclick=()=>{
+    if(C.seen[i])return;
+    if(!C.pred[i]){fb.className='fb warn';fb.textContent='Classifiquem antes de pingar.';return}
+    const col=cab(s.p);
+    pour(i,col).then(ok=>{
+      if(!ok)return;C.seen[i]=true;pb.disabled=true;pb.removeAttribute('data-pour');
+      res.innerHTML='<span class="chip"><i style="background:'+col+'"></i>pH ≈ '+fmt(s.p,1)+'</span>';
+      const right=C.pred[i]===cls(s.p);
+      note(s.n+': previsto '+CLN[C.pred[i]].toLowerCase()+', pH ≈ '+fmt(s.p,1));
+      if(right){award(1,s.n.toLowerCase());fb.className='fb good';fb.textContent='Previsão confirmada: '+CLN[cls(s.p)].toLowerCase()+'.'}
+      else{fb.className='fb bad';fb.textContent='Pela cor, é '+CLN[cls(s.p)].toLowerCase()+'.'+(i===3?' O bicarbonato é levemente básico: o íon HCO₃⁻ capta H⁺ da água.':'')}
+    });
+  };
+  $('#cabList').appendChild(d);
+});
+const MYS=[{n:'refrigerante de limão',p:2.8,r:0},{n:'água com gás',p:5,r:1},{n:'leite de magnésia',p:9.8,r:3},{n:'água sanitária',p:12.5,r:4}];
+const RANGES=['pH 1 a 3','pH 4 a 6','pH 7','pH 8 a 10','pH 11 a 14'];
+const M={s:MYS[Math.floor(Math.random()*MYS.length)],seen:false,done:false};
+if(R)R.tubeColor(6,M.s.r===3?0xf6f6f2:0xeef4f6,M.s.r===3?0.75:0.3);
+$('#mHeat').setAttribute('data-pour','');
+$('#mHeat').onclick=()=>{
+  if(M.seen)return;
+  pour(6,cab(M.s.p)).then(ok=>{
+    if(!ok)return;M.seen=true;$('#mHeat').disabled=true;$('#mHeat').removeAttribute('data-pour');note('Tubo misterioso revelado');
+    const box=$('#mOpts');box.hidden=false;
+    RANGES.forEach((t,k)=>{const b=document.createElement('button');b.className='btn';b.textContent=t;
+      b.onclick=()=>{if(M.done)return;
+        if(k===M.s.r){M.done=true;b.classList.add('ok');award(2,'tubo misterioso');$('#mFb').className='fb good';$('#mFb').textContent='Certo! Era '+M.s.n+', pH ≈ '+fmt(M.s.p,1)+'.'}
+        else{b.classList.add('no');b.disabled=true;$('#mFb').className='fb bad';$('#mFb').textContent='Comparem a cor do tubo com a escala acima.';note('Tubo misterioso: palpite '+t+' incorreto')}};
+      box.appendChild(b)});
+  });
+};
+quiz($('#repQuiz'),{tag:'repolho',a:0,
+  q:'Por que o mesmo extrato fica vermelho no limão e verde-amarelado na soda?',
+  opts:['As antocianinas do repolho mudam de estrutura conforme a concentração de H⁺ e OH⁻ e passam a absorver cores diferentes de luz',
+        'O extrato reage e vira uma substância nova, que é sempre a mesma em todos os tubos',
+        'A cor depende só da quantidade de extrato que foi pingada'],
+  why:'A antocianina é um indicador ácido-base natural: ganha ou perde H⁺ conforme o meio, e cada forma absorve uma faixa diferente do espectro. A fenolftaleína da titulação funciona pelo mesmo princípio.'});
+
+/* ---------- Caderno ---------- */
+[0,1].forEach(i=>{const inp=$('#tn'+i);inp.value=S.teams[i].name;
+  inp.oninput=()=>{S.teams[i].name=inp.value.trim()||('Equipe '+'AB'[i]);store.set('teams',S.teams);renderScore()}});
+$('#copyLog').onclick=()=>{
+  const txt='Bancada Virtual · caderno de laboratório\n'+S.teams.map(t=>t.name+': '+t.pts+' pts').join(' | ')+'\n\n'+
+    S.log.map(e=>e.t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'  '+e.text).join('\n');
+  const fb=$('#cadFb');
+  try{navigator.clipboard.writeText(txt).then(()=>{fb.className='fb good';fb.textContent='Caderno copiado.'},()=>{fb.className='fb warn';fb.textContent='Não foi possível copiar. Selecione os registros abaixo e copie manualmente.'})}
+  catch(e){fb.className='fb warn';fb.textContent='Não foi possível copiar. Selecione os registros abaixo e copie manualmente.'}
+};
+let resetArm=false;
+$('#resetScore').onclick=()=>{
+  if(!resetArm){resetArm=true;$('#resetScore').textContent='Confirmar: zerar?';setTimeout(()=>{resetArm=false;$('#resetScore').textContent='Zerar placar'},3000);return}
+  S.teams.forEach(t=>t.pts=0);store.set('teams',S.teams);renderScore();note('Placar zerado');resetArm=false;$('#resetScore').textContent='Zerar placar';
+};
+
+renderScore();renderLog();titSet('treino');S.log=[];renderLog();show('seg');
+window.__bancada={T,F,C,M,S,pH,cab,addV,R:!!R};
+})();
+</script>
+
+</body></html>
